@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- No NuGet packages restored (offline env, see docs/gap-log.md). -->
+    <!-- Provides Microsoft.Extensions.* (Hosting/DI/Options/Configuration/Logging/Http) -->
+    <!-- without needing NuGet restore, since they ship in the ASP.NET Core shared framework. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Plain Microsoft.NET.Sdk (not .Sdk.Web) does not auto-copy wwwroot/
+         to the output directory the way a Web SDK project would - done
+         explicitly here instead. ServeCommand.cs points WebRootPath at
+         AppContext.BaseDirectory (the built DLL's own folder) rather than
+         relying on the process's current working directory, since running
+         dotnet with an explicit project path does not reliably set the
+         CWD to that project's own folder. -->
+    <Content Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TradingPlatform.Core\TradingPlatform.Core.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Data\TradingPlatform.Data.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Indicators\TradingPlatform.Indicators.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Strategy\TradingPlatform.Strategy.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Risk\TradingPlatform.Risk.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Backtesting\TradingPlatform.Backtesting.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Execution\TradingPlatform.Execution.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Scanner\TradingPlatform.Scanner.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Reporting\TradingPlatform.Reporting.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Api\TradingPlatform.Api.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

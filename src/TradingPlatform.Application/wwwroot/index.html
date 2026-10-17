@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>AggressiveMomentumV1 — Trading Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Inter Tight = every UI/body/number; Manrope = headings only (geometric, pairs with Inter Tight's tight metrics); Material Symbols = the single icon set. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script>
+// Apply the saved theme before first paint to avoid a light/dark flash.
+try{ const t=localStorage.getItem('tp-theme'); if(t==='light'||t==='dark') document.documentElement.dataset.theme=t; }catch(e){}
+</script>
+<style>
+/* ════════════════════════════════════════════════════════════════
+   Material Design 3 — tokens (md.sys.*) for the web, CSS-only.
+   Seed: blue (#3F5F90). Light + dark schemes; finance roles (gain/warn) are
+   app-level extensions because M3 has no semantic "positive" colour.
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --md-sys-color-primary:#3F5F90;--md-sys-color-on-primary:#FFFFFF;
+  --md-sys-color-primary-container:#D6E3FF;--md-sys-color-on-primary-container:#001B3E;
+  --md-sys-color-secondary:#565F71;--md-sys-color-on-secondary:#FFFFFF;
+  --md-sys-color-secondary-container:#DAE2F9;--md-sys-color-on-secondary-container:#131C2B;
+  --md-sys-color-tertiary:#705575;--md-sys-color-tertiary-container:#FAD8FD;--md-sys-color-on-tertiary-container:#28132E;
+  --md-sys-color-error:#BA1A1A;--md-sys-color-on-error:#FFFFFF;
+  --md-sys-color-error-container:#FFDAD6;--md-sys-color-on-error-container:#410002;
+  --md-sys-color-surface:#F9F9FF;--md-sys-color-on-surface:#191C20;--md-sys-color-on-surface-variant:#44474E;
+  --md-sys-color-surface-container-lowest:#FFFFFF;--md-sys-color-surface-container-low:#F3F3FA;
+  --md-sys-color-surface-container:#EDEDF4;--md-sys-color-surface-container-high:#E7E8EE;--md-sys-color-surface-container-highest:#E2E2E9;
+  --md-sys-color-outline:#74777F;--md-sys-color-outline-variant:#C4C6D0;
+  --md-sys-color-inverse-surface:#2E3135;--md-sys-color-inverse-on-surface:#F0F0F7;--md-sys-color-scrim:#000000;
+  /* finance roles */
+  --tp-gain:#0F7B4F;--tp-gain-container:#B8F2D3;--tp-on-gain-container:#002113;
+  --tp-warn:#7A5900;--tp-warn-container:#FFDEA0;--tp-on-warn-container:#261900;
+  /* chart palette (read by ECharts through getComputedStyle) */
+  --chart-up:#0F7B4F;--chart-down:#BA1A1A;--chart-grid:#E2E2E9;--chart-axis:#C4C6D0;--chart-text:#44474E;
+  --chart-sma20:#3F5F90;--chart-sma50:#7B4EA3;--chart-sma200:#B26A00;--chart-hmaFast:#0F7B4F;--chart-hmaSlow:#BA1A1A;--chart-supertrend:#191C20;
+  --chart-volume:#9AA3B5;--chart-rsi:#3F5F90;--chart-adx:#B26A00;--chart-macd:#0F7B4F;--chart-macdSignal:#BA1A1A;--chart-atr:#7B4EA3;
+  --chart-tipBg:#F3F3FA;--chart-tipText:#191C20;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --md-sys-color-primary:#A8C8FF;--md-sys-color-on-primary:#05305F;
+  --md-sys-color-primary-container:#254777;--md-sys-color-on-primary-container:#D6E3FF;
+  --md-sys-color-secondary:#BEC6DC;--md-sys-color-on-secondary:#283141;
+  --md-sys-color-secondary-container:#3E4759;--md-sys-color-on-secondary-container:#DAE2F9;
+  --md-sys-color-tertiary:#DDBCE0;--md-sys-color-tertiary-container:#573E5C;--md-sys-color-on-tertiary-container:#FAD8FD;
+  --md-sys-color-error:#FFB4AB;--md-sys-color-on-error:#690005;
+  --md-sys-color-error-container:#93000A;--md-sys-color-on-error-container:#FFDAD6;
+  --md-sys-color-surface:#111318;--md-sys-color-on-surface:#E2E2E9;--md-sys-color-on-surface-variant:#C4C6D0;
+  --md-sys-color-surface-container-lowest:#0C0E13;--md-sys-color-surface-container-low:#191C20;
+  --md-sys-color-surface-container:#1D2024;--md-sys-color-surface-container-high:#282A2F;--md-sys-color-surface-container-highest:#33353A;
+  --md-sys-color-outline:#8E9099;--md-sys-color-outline-variant:#44474E;
+  --md-sys-color-inverse-surface:#E2E2E9;--md-sys-color-inverse-on-surface:#2E3135;
+  --tp-gain:#7DDBA3;--tp-gain-container:#005232;--tp-on-gain-container:#99F7BD;
+  --tp-warn:#F2BF48;--tp-warn-container:#5C4300;--tp-on-warn-container:#FFDEA0;
+  --chart-up:#7DDBA3;--chart-down:#FFB4AB;--chart-grid:#282A2F;--chart-axis:#44474E;--chart-text:#C4C6D0;
+  --chart-sma20:#A8C8FF;--chart-sma50:#D0B4F5;--chart-sma200:#F2BF48;--chart-hmaFast:#7DDBA3;--chart-hmaSlow:#FFB4AB;--chart-supertrend:#E2E2E9;
+  --chart-volume:#5A6479;--chart-rsi:#A8C8FF;--chart-adx:#F2BF48;--chart-macd:#7DDBA3;--chart-macdSignal:#FFB4AB;--chart-atr:#D0B4F5;
+  --chart-tipBg:#282A2F;--chart-tipText:#E2E2E9;
+}}
+:root[data-theme="dark"]{
+  --md-sys-color-primary:#A8C8FF;--md-sys-color-on-primary:#05305F;
+  --md-sys-color-primary-container:#254777;--md-sys-color-on-primary-container:#D6E3FF;
+  --md-sys-color-secondary:#BEC6DC;--md-sys-color-on-secondary:#283141;
+  --md-sys-color-secondary-container:#3E4759;--md-sys-color-on-secondary-container:#DAE2F9;
+  --md-sys-color-tertiary:#DDBCE0;--md-sys-color-tertiary-container:#573E5C;--md-sys-color-on-tertiary-container:#FAD8FD;
+  --md-sys-color-error:#FFB4AB;--md-sys-color-on-error:#690005;
+  --md-sys-color-error-container:#93000A;--md-sys-color-on-error-container:#FFDAD6;
+  --md-sys-color-surface:#111318;--md-sys-color-on-surface:#E2E2E9;--md-sys-color-on-surface-variant:#C4C6D0;
+  --md-sys-color-surface-container-lowest:#0C0E13;--md-sys-color-surface-container-low:#191C20;
+  --md-sys-color-surface-container:#1D2024;--md-sys-color-surface-container-high:#282A2F;--md-sys-color-surface-container-highest:#33353A;
+  --md-sys-color-outline:#8E9099;--md-sys-color-outline-variant:#44474E;
+  --md-sys-color-inverse-surface:#E2E2E9;--md-sys-color-inverse-on-surface:#2E3135;
+  --tp-gain:#7DDBA3;--tp-gain-container:#005232;--tp-on-gain-container:#99F7BD;
+  --tp-warn:#F2BF48;--tp-warn-container:#5C4300;--tp-on-warn-container:#FFDEA0;
+  --chart-up:#7DDBA3;--chart-down:#FFB4AB;--chart-grid:#282A2F;--chart-axis:#44474E;--chart-text:#C4C6D0;
+  --chart-sma20:#A8C8FF;--chart-sma50:#D0B4F5;--chart-sma200:#F2BF48;--chart-hmaFast:#7DDBA3;--chart-hmaSlow:#FFB4AB;--chart-supertrend:#E2E2E9;
+  --chart-volume:#5A6479;--chart-rsi:#A8C8FF;--chart-adx:#F2BF48;--chart-macd:#7DDBA3;--chart-macdSignal:#FFB4AB;--chart-atr:#D0B4F5;
+  --chart-tipBg:#282A2F;--chart-tipText:#E2E2E9;
+}
+
+:root{
+  /* type: ONE family for everything (Inter Tight); Manrope only for headings. Sizes come from the M3 type scale ONLY. */
+  --font:'Inter Tight',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-head:'Manrope','Inter Tight',system-ui,sans-serif;
+  --ts-display-s:600 2.25rem/2.75rem var(--font-head);      /* 36/44 */
+  --ts-headline-m:700 1.75rem/2.25rem var(--font-head);     /* 28/36 */
+  --ts-headline-s:700 1.5rem/2rem var(--font-head);         /* 24/32 */
+  --ts-title-l:700 1.375rem/1.75rem var(--font-head);       /* 22/28 */
+  --ts-title-m:600 1rem/1.5rem var(--font-head);            /* 16/24 */
+  --ts-title-s:600 .875rem/1.25rem var(--font-head);        /* 14/20 */
+  --ts-body-l:400 1rem/1.5rem var(--font);                  /* 16/24 */
+  --ts-body-m:400 .875rem/1.25rem var(--font);              /* 14/20 */
+  --ts-body-s:400 .75rem/1rem var(--font);                  /* 12/16 */
+  --ts-label-l:500 .875rem/1.25rem var(--font);             /* 14/20 */
+  --ts-label-m:500 .75rem/1rem var(--font);                 /* 12/16 */
+  --ts-label-s:500 .6875rem/1rem var(--font);               /* 11/16 */
+  /* shape */
+  --r-xs:4px;--r-s:8px;--r-m:12px;--r-l:16px;--r-xl:28px;--r-full:9999px;
+  /* spacing: 4dp grid */
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:20px;--sp-6:24px;--sp-8:32px;
+  /* motion */
+  --ease:cubic-bezier(.2,0,0,1);--ease-dec:cubic-bezier(.05,.7,.1,1);
+  --drawer-w:280px;--appbar-h:64px;
+
+  /* legacy aliases so existing renderers keep working while resolving to M3 roles */
+  --bg0:var(--md-sys-color-surface);--bg1:var(--md-sys-color-surface-container-low);--bg2:var(--md-sys-color-surface-container);
+  --bg3:var(--md-sys-color-surface-container-high);--bg4:var(--md-sys-color-surface-container-highest);
+  --border:var(--md-sys-color-outline-variant);--border2:var(--md-sys-color-outline-variant);
+  --text1:var(--md-sys-color-on-surface);--text2:var(--md-sys-color-on-surface-variant);--text3:var(--md-sys-color-on-surface-variant);
+  --green:var(--tp-gain);--green-dim:var(--tp-gain-container);--red:var(--md-sys-color-error);--red-dim:var(--md-sys-color-error-container);
+  --amber:var(--tp-warn);--amber-dim:var(--tp-warn-container);--blue:var(--md-sys-color-primary);--blue-dim:var(--md-sys-color-primary-container);
+  --radius:var(--r-m);--radius-sm:var(--r-s);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;color-scheme:light dark}
+:root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}
+body{background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);font:var(--ts-body-m);min-height:100vh;
+     -webkit-font-smoothing:antialiased;font-feature-settings:'tnum' 1,'cv11' 1}
+::selection{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)}
+a{color:var(--md-sys-color-primary);text-decoration:none}
+code{font:var(--ts-label-m);background:var(--md-sys-color-surface-container-highest);padding:2px 6px;border-radius:var(--r-xs);color:var(--md-sys-color-on-surface)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--md-sys-color-secondary);outline-offset:2px;border-radius:var(--r-xs)}
+::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--md-sys-color-outline-variant);border-radius:6px;border:3px solid transparent;background-clip:content-box}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ── Icons: ONE set (Material Symbols Outlined), ONE size system ──
+   24px by default (nav, app bar, empty-state=48); 18px wherever an icon sits inline with a label (buttons, chips,
+   titles, tabs) — the M3 spec size for those contexts. No other sizes exist. */
+.ms{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;
+    text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;width:1em;height:1em;overflow:hidden;flex:none;
+    -webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+    vertical-align:middle;user-select:none}
+.ms.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+.btn .ms,.chip .ms,.tbl-title .ms,.panel-box h2 .ms,.back-link .ms,.pill .ms,.loading-row .ms,.ks-chip .ms,.tab .ms,.tab-count .ms,.tonal-note .ms{font-size:18px}
+.empty .ms,.chart-empty .ms{font-size:48px;display:block;margin:0 auto 12px;opacity:.6}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── App shell: top app bar + navigation drawer ── */
+.app{display:grid;grid-template-columns:var(--drawer-w) minmax(0,1fr);min-height:100vh}
+.appbar{position:sticky;top:0;z-index:60;height:var(--appbar-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-6);
+        background:var(--md-sys-color-surface);border-bottom:1px solid var(--md-sys-color-outline-variant);grid-column:2}
+.appbar-menu{display:none}
+.appbar-title{font:var(--ts-title-l);color:var(--md-sys-color-on-surface);letter-spacing:-.01em}
+.appbar-sub{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant)}
+.appbar-spacer{flex:1}
+.appbar-meta{font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant);display:flex;align-items:center;gap:var(--sp-4)}
+.conn{display:inline-flex;align-items:center;gap:var(--sp-2)}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--md-sys-color-outline)}
+.conn-dot.ok{background:var(--tp-gain)}.conn-dot.bad{background:var(--md-sys-color-error)}
+.icon-btn{width:40px;height:40px;border-radius:var(--r-full);border:none;background:transparent;color:var(--md-sys-color-on-surface-variant);
+          display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .2s var(--ease)}
+.icon-btn:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.icon-btn:active{background:color-mix(in srgb,var(--md-sys-color-on-surface) 12%,transparent)}
+.ks-chip{display:inline-flex;align-items:center;gap:var(--sp-2);height:32px;padding:0 var(--sp-3);border-radius:var(--r-s);font:var(--ts-label-l);
+         background:var(--tp-gain-container);color:var(--tp-on-gain-container)}
+.ks-chip.active{background:var(--md-sys-color-error-container);color:var(--md-sys-color-on-error-container);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--md-sys-color-error) 45%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+@media (prefers-reduced-motion:reduce){.ks-chip.active{animation:none}.spin{animation-duration:3s}*{scroll-behavior:auto!important}}
+
+.drawer{grid-row:1 / span 2;grid-column:1;position:sticky;top:0;height:100vh;overflow-y:auto;padding:var(--sp-3) var(--sp-3) var(--sp-6);
+        background:var(--md-sys-color-surface-container-low);display:flex;flex-direction:column;gap:var(--sp-1);z-index:70}
+.drawer-brand{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-4) var(--sp-3) var(--sp-5)}
+.drawer-brand .mark{width:40px;height:40px;border-radius:var(--r-m);background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);
+        display:flex;align-items:center;justify-content:center;font:var(--ts-title-m);flex:none}
+.drawer-brand b{font:var(--ts-title-m);display:block}
+.drawer-brand span{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant);display:block}
+.drawer-section{font:var(--ts-title-s);color:var(--md-sys-color-on-surface-variant);padding:var(--sp-4) var(--sp-4) var(--sp-2)}
+.tabs{display:flex;flex-direction:column;gap:2px}
+.tab{height:56px;padding:0 var(--sp-4) 0 var(--sp-4);border-radius:var(--r-full);cursor:pointer;font:var(--ts-label-l);color:var(--md-sys-color-on-surface-variant);
+     display:flex;align-items:center;gap:var(--sp-3);white-space:nowrap;user-select:none;position:relative;transition:background .2s var(--ease),color .2s var(--ease)}
+.tab .ms{font-size:24px}
+.tab:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.tab.active{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);font-weight:600}
+.tab.active .ms{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+.tab-count{margin-left:auto;font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant);font-variant-numeric:tabular-nums}
+.tab.active .tab-count{color:var(--md-sys-color-on-secondary-container)}
+.scrim{display:none;position:fixed;inset:0;background:color-mix(in srgb,var(--md-sys-color-scrim) 32%,transparent);z-index:65}
+
+main.wrap{grid-column:2;padding:var(--sp-6) var(--sp-6) 64px;max-width:1560px;width:100%}
+.panel{display:none}.panel.active{display:block;animation:fadein .25s var(--ease-dec)}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.page-head{margin-bottom:var(--sp-5)}
+.page-head h1{font:var(--ts-headline-s);letter-spacing:-.01em}
+.page-head p{font:var(--ts-body-m);color:var(--md-sys-color-on-surface-variant);margin-top:var(--sp-1)}
+
+@media (max-width:1040px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .appbar,main.wrap{grid-column:1}
+  .appbar-menu{display:inline-flex}
+  .drawer{position:fixed;inset:0 auto 0 0;width:min(var(--drawer-w),88vw);transform:translateX(-102%);transition:transform .3s var(--ease-dec);
+          border-radius:0 var(--r-l) var(--r-l) 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  body.drawer-open .drawer{transform:none}body.drawer-open .scrim{display:block}
+  main.wrap{padding:var(--sp-4) var(--sp-4) 64px}
+  .appbar{padding:0 var(--sp-4)}.appbar-sub,.appbar-meta .hide-sm{display:none}
+}
+
+/* ── Hero / regime banner (an M3 card with a tonal icon) ── */
+.hero{border-radius:var(--r-l);background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);
+      padding:var(--sp-4) var(--sp-5);margin-bottom:var(--sp-4);display:flex;align-items:center;gap:var(--sp-5);flex-wrap:wrap}
+.hero-regime{display:flex;align-items:center;gap:var(--sp-3)}
+.hero-regime .ico{width:48px;height:48px;border-radius:var(--r-m);display:flex;align-items:center;justify-content:center}
+.hero.bull .ico{background:var(--tp-gain-container);color:var(--tp-on-gain-container)}
+.hero.bear .ico{background:var(--md-sys-color-error-container);color:var(--md-sys-color-on-error-container)}
+.hero.normal .ico{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)}
+.hero-regime-label{font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant)}
+.hero-regime-val{font:var(--ts-title-l)}
+.hero-stat{font:var(--ts-body-m);color:var(--md-sys-color-on-surface-variant);padding-left:var(--sp-5);border-left:1px solid var(--md-sys-color-outline-variant)}
+.hero-stat b{color:var(--md-sys-color-on-surface);font-weight:600}
+.hero-stat.warn b{color:var(--tp-warn)}.hero-stat.danger b{color:var(--md-sys-color-error)}
+.hero-spacer{flex:1}
+.killswitch-pill{display:none}
+
+/* ── Summary cards (M3 filled card) ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-5)}
+.card{background:var(--md-sys-color-surface-container);border-radius:var(--r-m);padding:var(--sp-4);border:1px solid transparent;transition:background .2s var(--ease)}
+.card:hover{background:var(--md-sys-color-surface-container-high)}
+.card-label{font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant);margin-bottom:var(--sp-2)}
+.card-value{font:var(--ts-headline-s);font-variant-numeric:tabular-nums}
+.card-sub{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant);margin-top:var(--sp-1)}
+.card.green .card-value{color:var(--tp-gain)}.card.red .card-value{color:var(--md-sys-color-error)}
+.card.amber .card-value{color:var(--tp-warn)}.card.blue .card-value{color:var(--md-sys-color-primary)}
+
+/* ── Tables inside outlined cards ── */
+.tbl-wrap,.panel-box{background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--r-m);overflow:hidden;margin-bottom:var(--sp-4)}
+.panel-box{padding:var(--sp-5);overflow:visible}
+.panel-box h2,.tbl-title{font:var(--ts-title-m);display:flex;align-items:center;gap:var(--sp-2);color:var(--md-sys-color-on-surface)}
+.panel-box h2{margin-bottom:var(--sp-4)}
+.panel-box h2 .ms,.tbl-title .ms{color:var(--md-sys-color-on-surface-variant)}
+.tbl-head{padding:var(--sp-3) var(--sp-4);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+          border-bottom:1px solid var(--md-sys-color-outline-variant);flex-wrap:wrap}
+.tbl-search,.field input,.field select{height:40px;background:var(--md-sys-color-surface-container-highest);border:1px solid transparent;
+        border-bottom:1px solid var(--md-sys-color-on-surface-variant);color:var(--md-sys-color-on-surface);padding:0 var(--sp-3);
+        border-radius:var(--r-xs) var(--r-xs) 0 0;font:var(--ts-body-m);outline:none;transition:border-color .15s}
+.tbl-search{width:220px}
+.tbl-search:focus,.field input:focus,.field select:focus{border-bottom:2px solid var(--md-sys-color-primary);padding-bottom:0}
+.tbl-search::placeholder{color:var(--md-sys-color-on-surface-variant)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{height:40px;padding:0 var(--sp-3);text-align:left;font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant);cursor:pointer;white-space:nowrap;
+   background:var(--md-sys-color-surface-container);border-bottom:1px solid var(--md-sys-color-outline-variant);position:relative}
+th:hover{color:var(--md-sys-color-on-surface)}
+th.num,td.num{text-align:right}
+td{height:48px;padding:0 var(--sp-3);border-bottom:1px solid var(--md-sys-color-outline-variant);white-space:nowrap;font:var(--ts-body-m)}
+tbody tr{transition:background .15s var(--ease)}
+tbody tr:hover td{background:color-mix(in srgb,var(--md-sys-color-on-surface) 6%,transparent);cursor:pointer}
+tbody tr:last-child td{border-bottom:none}
+.empty{padding:var(--sp-8) var(--sp-5);text-align:center;color:var(--md-sys-color-on-surface-variant);font:var(--ts-body-m)}
+.loading-row{padding:var(--sp-8);text-align:center;color:var(--md-sys-color-on-surface-variant);font:var(--ts-body-m)}
+
+/* status badges → M3 tonal labels */
+.pill{display:inline-flex;align-items:center;gap:var(--sp-1);height:24px;padding:0 var(--sp-2);border-radius:var(--r-s);font:var(--ts-label-m)}
+.pill-green{background:var(--tp-gain-container);color:var(--tp-on-gain-container)}
+.pill-red{background:var(--md-sys-color-error-container);color:var(--md-sys-color-on-error-container)}
+.pill-amber{background:var(--tp-warn-container);color:var(--tp-on-warn-container)}
+.pill-blue{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)}
+.pill-gray{background:var(--md-sys-color-surface-container-highest);color:var(--md-sys-color-on-surface-variant)}
+.sym{font-weight:600;color:var(--md-sys-color-on-surface)}
+.sym-sub{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant)}
+.t-sub{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant)}
+.t-muted{color:var(--md-sys-color-on-surface-variant)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-4)}
+@media(max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}}
+.chart-wrap{position:relative;width:100%;height:240px}
+
+/* buttons: filled tonal / outlined / text, 40px, full radius */
+.btn{height:40px;padding:0 var(--sp-5);border-radius:var(--r-full);border:1px solid var(--md-sys-color-outline);background:transparent;
+     color:var(--md-sys-color-primary);font:var(--ts-label-l);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
+     transition:background .2s var(--ease)}
+.btn:hover{background:color-mix(in srgb,var(--md-sys-color-primary) 8%,transparent)}
+.btn.primary{background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);border-color:transparent}
+.btn.primary:hover{background:color-mix(in srgb,var(--md-sys-color-primary) 90%,var(--md-sys-color-on-primary))}
+.btn.tonal{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);border-color:transparent}
+.field{display:flex;flex-direction:column;gap:var(--sp-1)}
+.field label{font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant)}
+.toolbar{display:flex;gap:var(--sp-3);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--sp-4)}
+.back-link{cursor:pointer;color:var(--md-sys-color-primary);font:var(--ts-label-l);margin-bottom:var(--sp-4);display:inline-flex;align-items:center;gap:var(--sp-2)}
+
+.kv{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-4);min-height:40px;border-bottom:1px solid var(--md-sys-color-outline-variant);font:var(--ts-body-m)}
+.kv:last-child{border-bottom:none}
+.kv-key{color:var(--md-sys-color-on-surface-variant)}.kv-val{font-weight:600;text-align:right}
+
+/* ── Chart tab ── */
+.chart-layout{display:grid;grid-template-columns:260px 1fr;gap:var(--sp-4)}
+@media(max-width:1100px){.chart-layout{grid-template-columns:1fr}}
+.symbol-list{max-height:360px;overflow-y:auto;margin-top:var(--sp-2)}
+.symbol-item{height:48px;padding:0 var(--sp-3);border-radius:var(--r-full);cursor:pointer;font:var(--ts-label-l);display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2)}
+.symbol-item:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.symbol-item.active{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container)}
+.symbol-item .co{color:var(--md-sys-color-on-surface-variant);font:var(--ts-body-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.tv-panel{background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--r-m);overflow:hidden}
+.tv-header{padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--md-sys-color-outline-variant);display:flex;align-items:center;gap:var(--sp-5);flex-wrap:wrap}
+.tv-symbol-block{display:flex;align-items:baseline;gap:var(--sp-3);min-width:180px}
+.tv-symbol-name{font:var(--ts-title-l)}
+.tv-symbol-sub{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant)}
+.tv-last-price{font:var(--ts-title-l);font-family:var(--font);font-variant-numeric:tabular-nums}
+.tv-change{font:var(--ts-label-l);padding:2px var(--sp-2);border-radius:var(--r-s);font-variant-numeric:tabular-nums}
+.tv-change.positive{color:var(--tp-on-gain-container);background:var(--tp-gain-container)}
+.tv-change.negative{color:var(--md-sys-color-on-error-container);background:var(--md-sys-color-error-container)}
+.tv-toolbar{display:flex;align-items:center;gap:var(--sp-4);margin-left:auto;flex-wrap:wrap}
+/* segmented button (timeframe) */
+.tf-toggle{display:inline-flex;border:1px solid var(--md-sys-color-outline);border-radius:var(--r-full);overflow:hidden;height:40px}
+.tf-btn{padding:0 var(--sp-4);font:var(--ts-label-l);cursor:pointer;color:var(--md-sys-color-on-surface);background:transparent;border:none;border-right:1px solid var(--md-sys-color-outline)}
+.tf-btn:last-child{border-right:none}
+.tf-btn:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.tf-btn.active{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container)}
+.ind-toggles{display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center}
+.ind-toggles .ind-group-label{font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant);margin-right:var(--sp-1)}
+/* filter chip */
+.ind-chip,.chip{height:32px;padding:0 var(--sp-3);border-radius:var(--r-s);cursor:pointer;background:transparent;border:1px solid var(--md-sys-color-outline);
+     color:var(--md-sys-color-on-surface-variant);user-select:none;display:inline-flex;align-items:center;gap:var(--sp-2);font:var(--ts-label-l);transition:background .15s var(--ease)}
+.ind-chip .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5}
+.ind-chip.on{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);border-color:transparent}
+.ind-chip.on .dot{opacity:1}
+.ind-chip:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.ind-chip.on:hover{background:color-mix(in srgb,var(--md-sys-color-secondary-container) 88%,var(--md-sys-color-on-surface))}
+.tv-chart-body{position:relative;padding:var(--sp-2) 0 0}
+#mainChart{width:100%}
+.chart-legend{position:absolute;top:var(--sp-2);left:var(--sp-4);z-index:5;font:var(--ts-body-s);pointer-events:none;display:flex;gap:var(--sp-4);align-items:baseline;flex-wrap:wrap}
+.chart-legend .lg-sym{font:var(--ts-label-l);color:var(--md-sys-color-on-surface)}
+.chart-legend .lg-item{color:var(--md-sys-color-on-surface-variant)}.chart-legend .lg-item b{color:var(--md-sys-color-on-surface);font-weight:600}
+.pane-tag{position:absolute;left:var(--sp-4);z-index:5;font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant);pointer-events:none}
+.pane-tag b{color:var(--md-sys-color-on-surface);font-weight:600}
+.chart-empty{padding:80px var(--sp-5);text-align:center;color:var(--md-sys-color-on-surface-variant)}
+.st-metric{background:var(--md-sys-color-surface-container);border-radius:var(--r-s);padding:var(--sp-3)}
+.st-metric-label{font:var(--ts-label-m);color:var(--md-sys-color-on-surface-variant);margin-bottom:var(--sp-1)}
+.st-metric-val{font:var(--ts-title-m);font-family:var(--font);font-variant-numeric:tabular-nums}
+.st-metric-sub{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant);margin-top:2px}
+
+/* ── Dialog ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:color-mix(in srgb,var(--md-sys-color-scrim) 32%,transparent);z-index:200;align-items:center;justify-content:center;padding:var(--sp-5)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--md-sys-color-surface-container-high);border-radius:var(--r-xl);width:100%;max-width:640px;max-height:86vh;overflow-y:auto;animation:fadein .25s var(--ease-dec)}
+.modal-hdr{padding:var(--sp-5) var(--sp-6) var(--sp-3);display:flex;align-items:center;gap:var(--sp-3);position:sticky;top:0;background:var(--md-sys-color-surface-container-high)}
+.modal-title{font:var(--ts-headline-s);flex:1}
+.modal-body{padding:var(--sp-2) var(--sp-6) var(--sp-6)}
+.close-btn{width:40px;height:40px;border-radius:var(--r-full);background:transparent;border:none;cursor:pointer;color:var(--md-sys-color-on-surface-variant);display:inline-flex;align-items:center;justify-content:center}
+.close-btn:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+
+/* ── Settings page ── */
+.tonal-note{display:flex;gap:var(--sp-3);align-items:flex-start;background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);
+            border-radius:var(--r-m);padding:var(--sp-3) var(--sp-4);font:var(--ts-body-m);margin-bottom:var(--sp-4)}
+.tonal-note .ms{margin-top:1px}
+.tonal-note.warn{background:var(--tp-warn-container);color:var(--tp-on-warn-container)}
+.tonal-note.danger{background:var(--md-sys-color-error-container);color:var(--md-sys-color-on-error-container)}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:var(--sp-4);align-items:start}
+.set-card{background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--r-m);padding:var(--sp-5)}
+.set-card h2{font:var(--ts-title-m);margin-bottom:var(--sp-1)}
+.set-card .set-desc{font:var(--ts-body-s);color:var(--md-sys-color-on-surface-variant);margin-bottom:var(--sp-3)}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-4);min-height:40px;border-top:1px solid var(--md-sys-color-outline-variant);font:var(--ts-body-m)}
+.set-key{color:var(--md-sys-color-on-surface-variant);overflow-wrap:anywhere}
+.set-val{font-weight:600;text-align:right;overflow-wrap:anywhere;max-width:55%}
+.set-card.wide{grid-column:1 / -1}
+.theme-seg{display:inline-flex;border:1px solid var(--md-sys-color-outline);border-radius:var(--r-full);overflow:hidden;height:40px}
+.theme-seg button{padding:0 var(--sp-4);display:inline-flex;align-items:center;gap:var(--sp-2);font:var(--ts-label-l);background:transparent;border:none;border-right:1px solid var(--md-sys-color-outline);cursor:pointer;color:var(--md-sys-color-on-surface)}
+.theme-seg button:last-child{border-right:none}
+.theme-seg button .ms{font-size:18px}
+.theme-seg button:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.theme-seg button.on{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="drawer" id="drawer" aria-label="Main navigation">
+    <div class="drawer-brand"><div class="mark" aria-hidden="true">AM</div>
+      <div><b>AggressiveMomentumV1</b><span>NSE mid/small/microcap</span></div></div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <header class="appbar">
+    <button class="icon-btn appbar-menu" id="menuBtn" aria-label="Open navigation"><span class="ms" aria-hidden="true">menu</span></button>
+    <div><div class="appbar-title" id="pageTitle">Overview</div><div class="appbar-sub" id="hdrCapital"></div></div>
+    <div class="appbar-spacer"></div>
+    <div class="ks-chip" id="ksChip"></div>
+    <div class="appbar-meta"><span class="conn"><span class="conn-dot" id="connDot"></span><span class="hide-sm" id="connLabel">Connecting…</span></span></div>
+  </header>
+
+  <main class="wrap">
+    <div id="overviewHeader">
+      <div id="heroBanner"></div>
+      <div id="summaryCards" class="cards"></div>
+    </div>
+
+    <div class="panel active" id="panel-overview"></div>
+    <div class="panel" id="panel-positions"></div>
+    <div class="panel" id="panel-orders"></div>
+    <div class="panel" id="panel-signals"></div>
+    <div class="panel" id="panel-scanner"></div>
+    <div class="panel" id="panel-chart"></div>
+    <div class="panel" id="panel-backtests"></div>
+    <div class="panel" id="panel-risk"></div>
+    <div class="panel" id="panel-settings"></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="modalTitle"></span>
+      <button class="close-btn" onclick="closeModal()" aria-label="Close"><span class="ms" aria-hidden="true">close</span></button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// API layer
+// ════════════════════════════════════════════════════════════════
+const API = '/api';
+// Optional access key (server side: TRADING_API_KEY). Kept in sessionStorage only — gone when the tab closes.
+function apiKey(){ try { return sessionStorage.getItem('tpApiKey') || ''; } catch(e){ return ''; } }
+async function apiGet(path, retried){
+  const key = apiKey();
+  const res = await fetch(API + path, key ? { headers: { 'X-Api-Key': key } } : undefined);
+  if (res.status === 401 && !retried){
+    const entered = window.prompt('This server requires an API key (TRADING_API_KEY):');
+    if (entered){
+      try { sessionStorage.setItem('tpApiKey', entered.trim()); } catch(e){}
+      return apiGet(path, true);
+    }
+  }
+  if (!res.ok){
+    if (res.status === 404) return null;
+    throw new Error(path + ' -> HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+// ════════════════════════════════════════════════════════════════
+// Formatting helpers
+// ════════════════════════════════════════════════════════════════
+function esc(s){ const d=document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function rupees(v){
+  if (v==null) return '—';
+  const n = Math.round(v);
+  const neg = n < 0;
+  const s = Math.abs(n).toString();
+  let grouped;
+  if (s.length <= 3) grouped = s;
+  else {
+    const last3 = s.slice(-3), rest = s.slice(0,-3);
+    const groups = [];
+    for (let i = rest.length; i > 0; i -= 2) groups.unshift(rest.slice(Math.max(0,i-2), i));
+    grouped = groups.join(',') + ',' + last3;
+  }
+  return (neg?'-':'') + '₹' + grouped;
+}
+function num(v, d=2){ return v==null ? '—' : Number(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function int(v){ return v==null ? '—' : Math.round(v).toLocaleString('en-IN'); }
+function pct(v, d=2){ return v==null ? '—' : (v>=0?'+':'') + Number(v).toFixed(d) + '%'; }
+function pctPlain(v, d=1){ return v==null ? '—' : Number(v).toFixed(d) + '%'; }
+function dt(s){ if(!s) return '—'; const d=new Date(s); return isNaN(d) ? s : d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function dateOnly(s){ if(!s) return '—'; return String(s).slice(0,10); }
+function ago(s){
+  if(!s) return '—';
+  const ms = Date.now() - new Date(s).getTime();
+  const mins = Math.floor(ms/60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins/60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs/24) + 'd ago';
+}
+function colorFor(v){ return v==null ? 'var(--text2)' : v > 0 ? 'var(--green)' : v < 0 ? 'var(--red)' : 'var(--text2)'; }
+function titleCase(s){ return (s||'').replace(/([a-z])([A-Z])/g,'$1 $2'); }
+
+function sideBadge(side){
+  return side==='Buy' ? `<span class="pill pill-green">BUY</span>` : `<span class="pill pill-red">SELL</span>`;
+}
+function stateBadge(state){
+  const map = { Filled:'pill-green', PartiallyFilled:'pill-amber', Rejected:'pill-red', Failed:'pill-red',
+                Cancelled:'pill-gray', Created:'pill-gray', Validated:'pill-blue', Submitted:'pill-blue',
+                Acknowledged:'pill-blue', Open:'pill-blue', Unknown:'pill-gray' };
+  return `<span class="pill ${map[state]||'pill-gray'}">${esc(titleCase(state||'—'))}</span>`;
+}
+function regimeBadge(r){
+  if (!r) return '<span class="pill pill-gray">Unknown</span>';
+  const map = { Aggressive:'pill-green', Normal:'pill-blue', Cautious:'pill-amber', Defensive:'pill-amber', Emergency:'pill-red' };
+  return `<span class="pill ${map[r]||'pill-gray'}">${esc(titleCase(r))}</span>`;
+}
+function bucketBadge(b){
+  const map = { Large:'pill-blue', Mid:'pill-green', Small:'pill-amber', Micro:'pill-red', Unknown:'pill-gray' };
+  return `<span class="pill ${map[b]||'pill-gray'}">${esc(b||'Unknown')}</span>`;
+}
+
+function sortRows(rows, key, dir, getter){
+  const g = getter || (r => r[key]);
+  return [...rows].sort((a,b)=>{
+    const va = g(a), vb = g(b);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'string') return dir * va.localeCompare(vb);
+    return dir * (va - vb);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// App state
+// ════════════════════════════════════════════════════════════════
+const STATE = {
+  portfolio:null, positions:[], orders:[], signals:[], scanner:[], risk:null, performance:null,
+  metrics:null, instruments:[], backtestRuns:[], currentBacktestDetail:null,
+  chartSymbol:null, chartData:null, chartRangeYears:2,
+  sort:{ orders:{key:'createdAt',dir:-1}, signals:{key:'generatedAt',dir:-1}, scanner:{key:'rank',dir:1},
+         positions:{key:'symbol',dir:1}, backtestRuns:{key:'startedAt',dir:-1} },
+  filter:{ orders:'', signals:'', scanner:'', positions:'', backtestRuns:'', trades:'', symbolSearch:'' },
+  chartToggles:{ sma20:true, sma50:true, sma200:false, hmaFast:true, hmaSlow:true, supertrend:true,
+                 volume:true, rsi:true, adx:false, macd:false, atr:false },
+  paneTagEls:{}, chartResizeObserver:null,
+};
+let mainChart=null;
+
+// ════════════════════════════════════════════════════════════════
+// Bootstrap
+// ════════════════════════════════════════════════════════════════
+async function boot(){
+  try{
+    const [portfolio, positions, risk, metrics, performance, instruments] = await Promise.all([
+      apiGet('/portfolio'), apiGet('/positions'), apiGet('/risk'), apiGet('/metrics'),
+      apiGet('/performance'), apiGet('/instruments'),
+    ]);
+    STATE.portfolio = portfolio; STATE.positions = positions || [];
+    STATE.risk = risk; STATE.metrics = metrics; STATE.performance = performance;
+    STATE.instruments = instruments || [];
+    setConn(true);
+  }catch(e){
+    console.error(e);
+    setConn(false);
+    renderTabs(); renderKsChip(); renderSettings();
+    return;
+  }
+
+  const [orders, signals, scanner, backtestRuns] = await Promise.all([
+    apiGet('/orders?limit=200'), apiGet('/signals?limit=200'), apiGet('/scanner'), apiGet('/backtests'),
+  ]);
+  STATE.orders = orders || []; STATE.signals = signals || []; STATE.scanner = scanner || [];
+  STATE.backtestRuns = backtestRuns || [];
+
+  renderHeader();
+  renderHero();
+  renderCards();
+  renderTabs();
+  renderOverview();
+  renderPositions();
+  renderOrders();
+  renderSignals();
+  renderScanner();
+  renderChartTab();
+  renderBacktests();
+  renderRisk();
+  renderSettings();
+}
+
+function setConn(ok){
+  document.getElementById('connDot').className = 'conn-dot ' + (ok?'ok':'bad');
+  document.getElementById('connLabel').textContent = ok ? 'API connected' : 'API unreachable — start with `dotnet run -- serve`';
+}
+
+function renderHeader(){
+  const p = STATE.portfolio;
+  document.getElementById('hdrCapital').textContent = p ? `NAV ${rupees(p.nav)} · as of ${dateOnly(p.asOfDate)}` : '';
+}
+
+function renderHero(){
+  const el = document.getElementById('heroBanner');
+  const r = STATE.risk, p = STATE.portfolio;
+  const regime = p?.regime || null;
+  const cls = regime==='Aggressive' ? 'bull' : (regime==='Defensive'||regime==='Emergency') ? 'bear' : 'normal';
+  const icon = cls==='bull' ? 'trending_up' : cls==='bear' ? 'trending_down' : 'trending_flat';
+
+  renderKsChip();
+  if (!p && !r){
+    el.innerHTML = `<div class="hero normal"><div class="hero-regime"><div class="ico"><span class="ms" aria-hidden="true">power_off</span></div>
+      <div><div class="hero-regime-label">Status</div><div class="hero-regime-val">No portfolio data yet</div></div></div>
+      <div class="hero-stat">Run <b>dotnet run -- paper</b> or <b>-- backtest</b> to populate the desk.</div></div>`;
+    return;
+  }
+
+  const killActive = r?.killSwitchActive;
+  el.innerHTML = `
+    <div class="hero ${cls}">
+      <div class="hero-regime">
+        <div class="ico"><span class="ms" aria-hidden="true">${icon}</span></div>
+        <div><div class="hero-regime-label">Market Regime</div>
+          <div class="hero-regime-val">${esc(titleCase(regime||'Unknown'))}</div></div>
+      </div>
+      <span class="hero-stat">Drawdown <b style="color:${(r?.currentDrawdownPercent||0)>15?'var(--red)':'inherit'}">${pctPlain(r?.currentDrawdownPercent,1)}</b> · tier <b>${esc(r?.currentTierName||'Normal')}</b></span>
+      <span class="hero-stat ${(r?.portfolioHeatPercent||0) > (r?.portfolioHeatMaxPercent||100)*0.8 ? 'warn':''}">Portfolio heat <b>${pctPlain(r?.portfolioHeatPercent,1)}</b> / ${pctPlain(r?.portfolioHeatMaxPercent,1)} max</span>
+      <span class="hero-stat">Open positions <b>${p?.openPositionCount ?? STATE.positions.length}</b></span>
+      ${r?.dailyLossLimitBreached ? `<span class="hero-stat danger"><b>Daily loss limit breached</b></span>` : ''}
+      <div class="hero-spacer"></div>
+    </div>`;
+}
+
+function renderKsChip(){
+  const r = STATE.risk, el = document.getElementById('ksChip');
+  const on = !!r?.killSwitchActive;
+  el.className = 'ks-chip' + (on ? ' active' : '');
+  el.innerHTML = `<span class="ms" aria-hidden="true">${on ? 'warning' : 'verified_user'}</span>` +
+    (on ? `Kill switch active — ${esc(r.killSwitchReason||r.killSwitchSource||'unknown')}` : 'Kill switch inactive');
+}
+
+function renderCards(){
+  const p = STATE.portfolio, r = STATE.risk, perf = STATE.performance, m = STATE.metrics;
+  const cards = [
+    ['NAV', p ? rupees(p.nav) : '—', p ? `cash ${rupees(p.cashBalance)}` : '', ''],
+    ['Drawdown', r ? pctPlain(r.currentDrawdownPercent,1) : '—', r ? `max ${pctPlain(r.maxDrawdownPercent,1)}` : '', (r?.currentDrawdownPercent||0)>0?'red':''],
+    ['Portfolio Heat', r ? pctPlain(r.portfolioHeatPercent,1) : '—', r ? `cap ${pctPlain(r.portfolioHeatMaxPercent,1)}` : '', 'amber'],
+    ['CAGR to date', perf ? pct(perf.cagrToDate) : '—', 'live/paper trading', perf && perf.cagrToDate>=0 ? 'green':'red'],
+    ['Sharpe', perf?.sharpe!=null ? num(perf.sharpe) : '—', perf?.sortino!=null?`Sortino ${num(perf.sortino)}`:'', 'blue'],
+    ['Win Rate', perf?.winRatePercent!=null ? pctPlain(perf.winRatePercent,1) : '—', perf?.tradeCount!=null?`${perf.tradeCount} trades`:'', ''],
+    ['Signals Today', m ? m.signalsGeneratedToday : '—', 'generated', ''],
+    ['Orders Today', m ? `${m.ordersFilledToday}/${m.ordersSubmittedToday}` : '—', m ? `${m.ordersRejectedToday} rejected` : '', ''],
+  ];
+  document.getElementById('summaryCards').innerHTML = cards.map(([label,val,sub,cls])=>`
+    <div class="card ${cls}"><div class="card-label">${esc(label)}</div>
+      <div class="card-value">${val}</div>${sub?`<div class="card-sub">${esc(sub)}</div>`:''}</div>`).join('');
+}
+
+const NAV = [
+  {id:'overview', icon:'dashboard', label:'Overview'},
+  {id:'positions', icon:'work', label:'Positions', count:()=>STATE.positions.length},
+  {id:'orders', icon:'checklist', label:'Orders', count:()=>STATE.orders.length},
+  {id:'signals', icon:'signal_cellular_alt', label:'Signals', count:()=>STATE.signals.length},
+  {id:'scanner', icon:'radar', label:'Scanner', count:()=>STATE.scanner.length},
+  {id:'chart', icon:'candlestick_chart', label:'Chart & Indicators'},
+  {id:'backtests', icon:'history', label:'Backtests', count:()=>STATE.backtestRuns.length},
+  {id:'risk', icon:'shield', label:'Risk & Performance'},
+  {section:'System'},
+  {id:'settings', icon:'settings', label:'Settings'},
+];
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = NAV.map(d => d.section
+    ? `<div class="drawer-section" role="presentation">${d.section}</div>`
+    : `<div class="tab ${d.id===CURRENT_TAB?'active':''}" data-panel="${d.id}" role="tab" tabindex="0" aria-selected="${d.id===CURRENT_TAB}">
+         <span class="ms" aria-hidden="true">${d.icon}</span>${d.label}${d.count?`<span class="tab-count">${d.count()}</span>`:''}
+       </div>`).join('');
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>switchTab(t.dataset.panel));
+    t.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); switchTab(t.dataset.panel); } });
+  });
+}
+
+let CURRENT_TAB = 'overview';
+function switchTab(id){
+  CURRENT_TAB = id;
+  document.querySelectorAll('.tab').forEach(t=>{ const on=t.dataset.panel===id; t.classList.toggle('active', on); t.setAttribute('aria-selected', on); });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+id));
+  document.getElementById('overviewHeader').hidden = id !== 'overview';
+  const def = NAV.find(n=>n.id===id); document.getElementById('pageTitle').textContent = def ? def.label : '';
+  document.body.classList.remove('drawer-open');
+  window.scrollTo({top:0});
+  if (id==='chart' && !STATE.chartSymbol && STATE.instruments.length) selectChartSymbol(STATE.instruments[0].symbol);
+}
+
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+function openModal(title, bodyHtml){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// Settings panel — READ-ONLY effective configuration (GET /api/settings). Secrets are never returned by the API.
+// ════════════════════════════════════════════════════════════════
+function themePref(){ try{ return localStorage.getItem('tp-theme') || 'system'; }catch(e){ return 'system'; } }
+function setTheme(pref){
+  try{ pref==='system' ? localStorage.removeItem('tp-theme') : localStorage.setItem('tp-theme', pref); }catch(e){}
+  // Charts capture theme colours when built, so reload to re-theme everything consistently.
+  location.reload();
+}
+function settingValue(v){
+  if (v === 'true' || v === 'false') return `<span class="pill ${v==='true'?'pill-green':'pill-gray'}">${v==='true'?'On':'Off'}</span>`;
+  return esc(v);
+}
+async function renderSettings(){
+  const el = document.getElementById('panel-settings');
+  const pref = themePref();
+  const seg = (id, icon, label) => `<button class="${pref===id?'on':''}" onclick="setTheme('${id}')" aria-pressed="${pref===id}"><span class="ms" aria-hidden="true">${icon}</span>${label}</button>`;
+  let s = null;
+  try{ s = await apiGet('/settings'); }catch(e){ console.error(e); }
+
+  const gate = !s ? '' : s.liveTradingAllowed
+    ? `<div class="tonal-note danger"><span class="ms" aria-hidden="true">warning</span><div><b>LIVE trading is enabled.</b> Mode is Live and AllowLiveTrading is true — <code>dotnet run -- live</code> can place real orders.</div></div>`
+    : `<div class="tonal-note"><span class="ms" aria-hidden="true">verified_user</span><div><b>Paper mode.</b> No real orders can be placed: ${esc(s.mode)} mode${s.mode==='Live'?' with AllowLiveTrading=false':''}. Both Mode=Live and AllowLiveTrading=true are required for live orders.</div></div>`;
+
+  const groups = !s ? `<div class="empty"><span class="ms" aria-hidden="true">info</span>Settings unavailable — the API did not return configuration.</div>` :
+    `<div class="settings-grid">${s.groups.map(g=>`
+      <div class="set-card ${g.items.length>14?'wide':''}"><h2>${esc(g.name)}</h2><div class="set-desc">${esc(g.description)}</div>
+        ${g.items.map(i=>`<div class="set-row"><span class="set-key">${esc(titleCase(i.key).replace(/\./g,' › '))}</span><span class="set-val">${settingValue(i.value)}</span></div>`).join('')}
+      </div>`).join('')}</div>`;
+
+  const creds = !s ? '' : `<div class="set-card"><h2>Broker credentials</h2><div class="set-desc">Only whether each environment variable is set — values are never sent to the browser.</div>
+    ${s.credentials.map(c=>`<div class="set-row"><span class="set-key">${esc(c.key)}</span>
+      <span class="pill ${c.value==='set'?'pill-green':'pill-gray'}"><span class="ms" aria-hidden="true">${c.value==='set'?'check_circle':'cancel'}</span>${esc(c.value==='set'?'Set':'Not set')}</span></div>`).join('')}</div>`;
+
+  el.innerHTML = `
+    <div class="page-head"><h1>Settings</h1><p>Effective configuration, read-only. Edit <code>config/appsettings.json</code> and restart to change anything.</p></div>
+    ${gate}
+    <div class="settings-grid" style="margin-bottom:var(--sp-4)">
+      <div class="set-card"><h2>Appearance</h2><div class="set-desc">Colour scheme for this browser.</div>
+        <div class="theme-seg" role="group" aria-label="Theme">${seg('system','brightness_auto','System')}${seg('light','light_mode','Light')}${seg('dark','dark_mode','Dark')}</div></div>
+      ${creds}
+    </div>
+    ${groups}`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Overview panel
+// ════════════════════════════════════════════════════════════════
+function renderOverview(){
+  const recentSignals = STATE.signals.slice(0,6);
+  const recentOrders = STATE.orders.slice(0,6);
+  const topScan = [...STATE.scanner].sort((a,b)=>a.rank-b.rank).slice(0,8);
+
+  document.getElementById('panel-overview').innerHTML = `
+    <div class="grid2">
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">radar</span>Top Scanner Candidates</span>
+          <span class="pill pill-gray">as of latest cycle</span></div>
+        <div class="tbl-scroll"><table><thead><tr><th>#</th><th>Symbol</th><th class="num">Score</th>
+          <th class="num">RS</th><th>Status</th><th class="num">Price</th></tr></thead>
+          <tbody>${topScan.length ? topScan.map(s=>`
+            <tr onclick="switchTab('chart');selectChartSymbol('${esc(s.symbol)}')">
+              <td>${s.rank}</td><td class="sym">${esc(s.symbol)}</td>
+              <td class="num" style="color:${colorFor(s.score)}">${num(s.score,1)}</td>
+              <td class="num">${num(s.relativeStrengthScore,1)}</td>
+              <td>${esc(s.breakoutStatus)}</td><td class="num">${rupees(s.price)}</td></tr>`).join('')
+            : `<tr><td colspan="6"><div class="empty"><span class="ms" aria-hidden="true">radar</span>No scan results yet — run <b>dotnet run -- scan</b></div></td></tr>`}
+          </tbody></table></div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">work</span>Open Positions</span></div>
+        <div class="tbl-scroll"><table><thead><tr><th>Symbol</th><th class="num">Qty</th>
+          <th class="num">Avg Entry</th><th class="num">Stop</th><th>Stage</th></tr></thead>
+          <tbody>${STATE.positions.length ? STATE.positions.map(p=>`
+            <tr onclick="switchTab('chart');selectChartSymbol('${esc(p.symbol)}')">
+              <td class="sym">${esc(p.symbol)}</td><td class="num">${int(p.quantity)}</td>
+              <td class="num">${rupees(p.averageEntryPrice)}</td><td class="num">${rupees(p.currentStop)}</td>
+              <td>${esc(titleCase(p.highestStageFilled))}</td></tr>`).join('')
+            : `<tr><td colspan="5"><div class="empty"><span class="ms" aria-hidden="true">work_off</span>No open positions</div></td></tr>`}
+          </tbody></table></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">signal_cellular_alt</span>Recent Signals</span></div>
+        <div class="tbl-scroll"><table><thead><tr><th>Symbol</th><th>Stage</th><th class="num">Pivot</th>
+          <th class="num">Suggested Entry</th><th>Generated</th></tr></thead>
+          <tbody>${recentSignals.length ? recentSignals.map(s=>`
+            <tr onclick="showSignalModal(${s.id})">
+              <td class="sym">${esc(s.symbol)}</td><td>${esc(titleCase(s.stage))}</td>
+              <td class="num">${rupees(s.pivotPrice)}</td><td class="num">${rupees(s.suggestedEntry)}</td>
+              <td>${ago(s.generatedAt)}</td></tr>`).join('')
+            : `<tr><td colspan="5"><div class="empty"><span class="ms" aria-hidden="true">signal_cellular_off</span>No signals recorded yet</div></td></tr>`}
+          </tbody></table></div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">checklist</span>Recent Orders</span></div>
+        <div class="tbl-scroll"><table><thead><tr><th>Symbol</th><th>Side</th><th>State</th>
+          <th class="num">Qty</th><th>When</th></tr></thead>
+          <tbody>${recentOrders.length ? recentOrders.map(o=>`
+            <tr onclick="showOrderModal(${o.id})">
+              <td class="sym">${esc(o.symbol)}</td><td>${sideBadge(o.side)}</td><td>${stateBadge(o.state)}</td>
+              <td class="num">${int(o.quantity)}</td><td>${ago(o.createdAt)}</td></tr>`).join('')
+            : `<tr><td colspan="5"><div class="empty"><span class="ms" aria-hidden="true">checklist</span>No orders recorded yet — run <b>dotnet run -- paper</b></div></td></tr>`}
+          </tbody></table></div>
+      </div>
+    </div>`;
+}
+
+function showSignalModal(id){
+  const s = STATE.signals.find(x=>x.id===id); if(!s) return;
+  openModal(s.symbol + ' — Signal', `
+    <div class="kv"><span class="kv-key">Stage</span><span class="kv-val">${esc(titleCase(s.stage))}</span></div>
+    <div class="kv"><span class="kv-key">Generated</span><span class="kv-val">${dt(s.generatedAt)}</span></div>
+    <div class="kv"><span class="kv-key">Pivot price</span><span class="kv-val">${rupees(s.pivotPrice)}</span></div>
+    <div class="kv"><span class="kv-key">Suggested entry</span><span class="kv-val">${rupees(s.suggestedEntry)}</span></div>
+    <div class="kv"><span class="kv-key">Suggested stop</span><span class="kv-val">${rupees(s.suggestedStop)}</span></div>
+    <div class="kv"><span class="kv-key">Risk / share</span><span class="kv-val">${rupees(s.riskPerShare)}</span></div>
+    <div class="kv"><span class="kv-key">Suggested qty</span><span class="kv-val">${int(s.suggestedPositionQty)}</span></div>
+    <div class="kv"><span class="kv-key">Signal→order lag</span><span class="kv-val">${esc(titleCase(s.signalToOrderLag))}</span></div>
+    <div class="kv"><span class="kv-key">Strategy / config version</span><span class="kv-val">${esc(s.strategyVersion)} / ${esc(s.configurationVersion)}</span></div>
+    ${s.bindingConstraints?`<div class="kv"><span class="kv-key">Binding constraint</span><span class="kv-val">${esc(s.bindingConstraints)}</span></div>`:''}
+    <div style="margin-top:var(--sp-4)"><button class="btn primary" onclick="closeModal();switchTab('chart');selectChartSymbol('${esc(s.symbol)}')"><span class="ms" aria-hidden="true">candlestick_chart</span>Open chart</button></div>`);
+}
+
+function showOrderModal(id){
+  const o = STATE.orders.find(x=>x.id===id); if(!o) return;
+  openModal(o.symbol + ' — Order #' + o.id, `
+    <div class="kv"><span class="kv-key">Side / Type</span><span class="kv-val">${sideBadge(o.side)} ${esc(titleCase(o.type))}</span></div>
+    <div class="kv"><span class="kv-key">State</span><span class="kv-val">${stateBadge(o.state)}</span></div>
+    <div class="kv"><span class="kv-key">Quantity</span><span class="kv-val">${int(o.quantity)}</span></div>
+    ${o.limitPrice!=null?`<div class="kv"><span class="kv-key">Limit price</span><span class="kv-val">${rupees(o.limitPrice)}</span></div>`:''}
+    ${o.stopPrice!=null?`<div class="kv"><span class="kv-key">Stop price</span><span class="kv-val">${rupees(o.stopPrice)}</span></div>`:''}
+    ${o.brokerOrderId?`<div class="kv"><span class="kv-key">Broker order id</span><span class="kv-val">${esc(o.brokerOrderId)}</span></div>`:''}
+    ${o.rejectionReason?`<div class="kv"><span class="kv-key">Rejection reason</span><span class="kv-val" style="color:var(--red)">${esc(o.rejectionReason)}</span></div>`:''}
+    <div class="kv"><span class="kv-key">Created</span><span class="kv-val">${dt(o.createdAt)}</span></div>
+    <div class="kv"><span class="kv-key">Updated</span><span class="kv-val">${dt(o.updatedAt)}</span></div>
+    <div class="kv"><span class="kv-key">Correlation id</span><span class="kv-val t-sub">${esc(o.correlationId)}</span></div>`);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Positions panel
+// ════════════════════════════════════════════════════════════════
+function renderPositions(){
+  const q = (STATE.filter.positions||'').toUpperCase();
+  const rows = sortRows(STATE.positions.filter(p=>p.symbol.toUpperCase().includes(q)), STATE.sort.positions.key, STATE.sort.positions.dir);
+  document.getElementById('panel-positions').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">work</span>Open Positions</span>
+        <input class="tbl-search" placeholder="Filter symbol…" value="${esc(STATE.filter.positions)}"
+          oninput="STATE.filter.positions=this.value;renderPositions()"></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr>
+          <th onclick="setSort('positions','symbol')">Symbol</th>
+          <th class="num" onclick="setSort('positions','quantity')">Qty</th>
+          <th class="num" onclick="setSort('positions','averageEntryPrice')">Avg Entry</th>
+          <th class="num" onclick="setSort('positions','initialStop')">Initial Stop</th>
+          <th class="num" onclick="setSort('positions','currentStop')">Current Stop</th>
+          <th class="num" onclick="setSort('positions','riskPerShare')">Risk/Share</th>
+          <th class="num" onclick="setSort('positions','initialRiskAmount')">Risk Amount</th>
+          <th>Stage</th>
+          <th onclick="setSort('positions','openedAt')">Opened</th>
+        </tr></thead>
+        <tbody>${rows.length ? rows.map(p=>`
+          <tr onclick="switchTab('chart');selectChartSymbol('${esc(p.symbol)}')">
+            <td class="sym">${esc(p.symbol)}</td>
+            <td class="num">${int(p.quantity)}</td>
+            <td class="num">${rupees(p.averageEntryPrice)}</td>
+            <td class="num">${rupees(p.initialStop)}</td>
+            <td class="num" style="color:var(--amber)">${rupees(p.currentStop)}</td>
+            <td class="num">${rupees(p.riskPerShare)}</td>
+            <td class="num">${rupees(p.initialRiskAmount)}</td>
+            <td><span class="pill pill-blue">${esc(titleCase(p.highestStageFilled))}</span></td>
+            <td>${dateOnly(p.openedAt)}</td>
+          </tr>`).join('')
+          : `<tr><td colspan="9"><div class="empty"><span class="ms" aria-hidden="true">work_off</span>No open positions. Run <b>dotnet run -- paper</b> to start building a book.</div></td></tr>`}
+        </tbody></table></div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Orders panel
+// ════════════════════════════════════════════════════════════════
+function renderOrders(){
+  const q = (STATE.filter.orders||'').toUpperCase();
+  const rows = sortRows(STATE.orders.filter(o=>o.symbol.toUpperCase().includes(q)), STATE.sort.orders.key, STATE.sort.orders.dir);
+  document.getElementById('panel-orders').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">checklist</span>Orders</span>
+        <input class="tbl-search" placeholder="Filter symbol…" value="${esc(STATE.filter.orders)}"
+          oninput="STATE.filter.orders=this.value;renderOrders()"></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr>
+          <th onclick="setSort('orders','symbol')">Symbol</th><th>Side</th><th>Type</th><th>State</th>
+          <th class="num" onclick="setSort('orders','quantity')">Qty</th>
+          <th class="num">Limit</th><th class="num">Stop</th><th>Broker Id</th>
+          <th onclick="setSort('orders','createdAt')">Created</th>
+        </tr></thead>
+        <tbody>${rows.length ? rows.map(o=>`
+          <tr onclick="showOrderModal(${o.id})">
+            <td class="sym">${esc(o.symbol)}</td><td>${sideBadge(o.side)}</td><td>${esc(titleCase(o.type))}</td>
+            <td>${stateBadge(o.state)}</td><td class="num">${int(o.quantity)}</td>
+            <td class="num">${o.limitPrice!=null?rupees(o.limitPrice):'—'}</td>
+            <td class="num">${o.stopPrice!=null?rupees(o.stopPrice):'—'}</td>
+            <td class="t-sub">${esc(o.brokerOrderId||'—')}</td>
+            <td>${ago(o.createdAt)}</td>
+          </tr>`).join('')
+          : `<tr><td colspan="9"><div class="empty"><span class="ms" aria-hidden="true">checklist</span>No orders recorded yet. Run <b>dotnet run -- paper</b>.</div></td></tr>`}
+        </tbody></table></div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Signals panel
+// ════════════════════════════════════════════════════════════════
+function renderSignals(){
+  const q = (STATE.filter.signals||'').toUpperCase();
+  const rows = sortRows(STATE.signals.filter(s=>s.symbol.toUpperCase().includes(q)), STATE.sort.signals.key, STATE.sort.signals.dir);
+  document.getElementById('panel-signals').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">signal_cellular_alt</span>Signals</span>
+        <input class="tbl-search" placeholder="Filter symbol…" value="${esc(STATE.filter.signals)}"
+          oninput="STATE.filter.signals=this.value;renderSignals()"></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr>
+          <th onclick="setSort('signals','symbol')">Symbol</th><th>Stage</th>
+          <th class="num">Pivot</th><th class="num">Sugg. Entry</th><th class="num">Sugg. Stop</th>
+          <th class="num">Risk/Share</th><th class="num">Sugg. Qty</th>
+          <th onclick="setSort('signals','generatedAt')">Generated</th>
+        </tr></thead>
+        <tbody>${rows.length ? rows.map(s=>`
+          <tr onclick="showSignalModal(${s.id})">
+            <td class="sym">${esc(s.symbol)}</td><td><span class="pill pill-blue">${esc(titleCase(s.stage))}</span></td>
+            <td class="num">${rupees(s.pivotPrice)}</td><td class="num">${rupees(s.suggestedEntry)}</td>
+            <td class="num">${rupees(s.suggestedStop)}</td><td class="num">${rupees(s.riskPerShare)}</td>
+            <td class="num">${int(s.suggestedPositionQty)}</td><td>${ago(s.generatedAt)}</td>
+          </tr>`).join('')
+          : `<tr><td colspan="8"><div class="empty"><span class="ms" aria-hidden="true">signal_cellular_off</span>No signals recorded yet.</div></td></tr>`}
+        </tbody></table></div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Scanner panel
+// ════════════════════════════════════════════════════════════════
+function renderScanner(){
+  const q = (STATE.filter.scanner||'').toUpperCase();
+  const rows = sortRows(STATE.scanner.filter(s=>s.symbol.toUpperCase().includes(q)), STATE.sort.scanner.key, STATE.sort.scanner.dir);
+  document.getElementById('panel-scanner').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">radar</span>Latest Scan Cycle</span>
+        <input class="tbl-search" placeholder="Filter symbol…" value="${esc(STATE.filter.scanner)}"
+          oninput="STATE.filter.scanner=this.value;renderScanner()"></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr>
+          <th onclick="setSort('scanner','rank')">#</th>
+          <th onclick="setSort('scanner','symbol')">Symbol</th>
+          <th class="num" onclick="setSort('scanner','score')">Score</th>
+          <th class="num" onclick="setSort('scanner','relativeStrengthScore')">RS</th>
+          <th class="num" onclick="setSort('scanner','momentumScore')">Momentum</th>
+          <th class="num" onclick="setSort('scanner','volumeScore')">Volume</th>
+          <th class="num" onclick="setSort('scanner','vcpScore')">VCP</th>
+          <th class="num" onclick="setSort('scanner','price')">Price</th>
+          <th class="num">Pivot</th><th>Status</th>
+          <th class="num">Dist%</th><th class="num">Sugg. Size</th>
+        </tr></thead>
+        <tbody>${rows.length ? rows.map(s=>`
+          <tr onclick="switchTab('chart');selectChartSymbol('${esc(s.symbol)}')">
+            <td>${s.rank}</td><td class="sym">${esc(s.symbol)}${s.sector?`<div class="sym-sub">${esc(s.sector)}</div>`:''}</td>
+            <td class="num" style="color:${colorFor(s.score-50)}">${num(s.score,1)}</td>
+            <td class="num">${num(s.relativeStrengthScore,1)}</td>
+            <td class="num">${num(s.momentumScore,1)}</td>
+            <td class="num">${num(s.volumeScore,1)}</td>
+            <td class="num">${num(s.vcpScore,1)}</td>
+            <td class="num">${rupees(s.price)}</td>
+            <td class="num">${rupees(s.pivotPrice)}</td>
+            <td>${esc(s.breakoutStatus)}</td>
+            <td class="num" style="color:${colorFor(-Math.abs(s.distanceFromPivotPercent))}">${pct(s.distanceFromPivotPercent)}</td>
+            <td class="num">${int(s.suggestedPositionSize)}</td>
+          </tr>`).join('')
+          : `<tr><td colspan="12"><div class="empty"><span class="ms" aria-hidden="true">radar</span>No scan results yet. Run <b>dotnet run -- scan</b>.</div></td></tr>`}
+        </tbody></table></div>
+    </div>`;
+}
+
+function setSort(panel, key){
+  const s = STATE.sort[panel];
+  s.dir = (s.key===key) ? -s.dir : 1;
+  s.key = key;
+  ({orders:renderOrders, signals:renderSignals, scanner:renderScanner, positions:renderPositions, backtestRuns:renderBacktests})[panel]();
+}
+
+// ════════════════════════════════════════════════════════════════
+// Chart & Indicators panel
+// ════════════════════════════════════════════════════════════════
+// Chart & Indicators panel — TradingView-influenced, Apache ECharts
+// ════════════════════════════════════════════════════════════════
+// Chart colours are read from the active theme's --chart-* CSS variables (see :root), so light/dark both work.
+// Theme changes reload the page (Settings → Appearance) because OVERLAY_DEFS captures colours at definition time.
+// Backtest-detail chart instances. NOT window.* properties: an element with id="btEqChart" is exposed as window.btEqChart
+// (named element access), so `window.btEqChart.dispose()` threw on first open and the charts never rendered.
+const BT_CHARTS = { eq:null, dd:null };
+function chartVar(k){ return getComputedStyle(document.documentElement).getPropertyValue('--chart-'+k).trim() || '#888'; }
+function alpha(hex, a){
+  const h = hex.replace('#',''); if (h.length !== 6) return hex;
+  return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
+}
+const CHART_FONT = "'Inter Tight', system-ui, sans-serif";
+const CHART_COLORS = new Proxy({}, { get:(_, k) => chartVar(String(k)) });
+const OVERLAY_DEFS = [
+  ['sma20','SMA 20','sma20',CHART_COLORS.sma20], ['sma50','SMA 50','sma50',CHART_COLORS.sma50],
+  ['sma200','SMA 200','sma200',CHART_COLORS.sma200], ['hmaFast','HMA Fast','hmaFast',CHART_COLORS.hmaFast],
+  ['hmaSlow','HMA Slow','hmaSlow',CHART_COLORS.hmaSlow], ['supertrend','Supertrend','supertrend',CHART_COLORS.supertrend],
+];
+const PANE_DEFS = [
+  ['volume','Volume',CHART_COLORS.volume], ['rsi','RSI (14)',CHART_COLORS.rsi], ['adx','ADX',CHART_COLORS.adx],
+  ['macd','MACD',CHART_COLORS.macd], ['atr','ATR %',CHART_COLORS.atr],
+];
+
+function renderChartTab(){
+  document.getElementById('panel-chart').innerHTML = `
+    <div class="chart-layout">
+      <div>
+        <div class="panel-box" style="padding:var(--sp-4)">
+          <div class="field"><label>Symbol</label>
+            <input class="tbl-search" style="width:100%" id="symSearchInput" placeholder="Search symbol or company…"
+              oninput="STATE.filter.symbolSearch=this.value;renderSymbolList()"></div>
+          <div class="symbol-list" id="symbolList"></div>
+        </div>
+        <div class="panel-box" id="chartInfoCards"></div>
+      </div>
+      <div>
+        <div class="tv-panel">
+          <div class="tv-header">
+            <div class="tv-symbol-block" id="tvSymbolBlock"><span class="tv-symbol-name">Select a symbol</span></div>
+            <div class="tv-toolbar">
+              <div class="tf-toggle" id="rangeToggle">
+                ${[['0.5','6M'],['1','1Y'],['2','2Y'],['5','5Y']].map(([y,l])=>
+                  `<button class="tf-btn ${Number(y)===STATE.chartRangeYears?'active':''}" onclick="setChartRange(${y})">${l}</button>`).join('')}
+              </div>
+              <div class="ind-toggles" id="overlayToggles"></div>
+              <div class="ind-toggles" id="paneToggles"></div>
+              <button class="btn" onclick="loadChart()" title="Reload"><span class="ms" aria-hidden="true">refresh</span></button>
+            </div>
+          </div>
+          <div class="tv-chart-body" id="tvChartBody">
+            <div class="chart-legend" id="chartLegend"></div>
+            <div id="mainChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  renderSymbolList();
+  renderOverlayToggles();
+  renderPaneToggles();
+}
+
+function renderSymbolList(){
+  const q = (STATE.filter.symbolSearch||'').toUpperCase();
+  const list = STATE.instruments.filter(i => i.symbol.toUpperCase().includes(q) || (i.companyName||'').toUpperCase().includes(q));
+  document.getElementById('symbolList').innerHTML = list.length ? list.map(i=>`
+    <div class="symbol-item ${i.symbol===STATE.chartSymbol?'active':''}" onclick="selectChartSymbol('${esc(i.symbol)}')">
+      <span>${esc(i.symbol)}</span><span class="co">${esc(i.companyName||'')}</span>
+    </div>`).join('') : `<div class="empty" style="padding:var(--sp-5)"><span class="ms" aria-hidden="true">search_off</span>No instruments cached — run <b>dotnet run -- fetch</b></div>`;
+}
+
+function renderOverlayToggles(){
+  document.getElementById('overlayToggles').innerHTML = '<span class="ind-group-label">Overlays</span>' +
+    OVERLAY_DEFS.map(([key,label,,color])=>`
+      <span class="ind-chip ${STATE.chartToggles[key]?'on':''}" style="${STATE.chartToggles[key]?`color:${color}`:''}"
+        onclick="toggleChartOption('${key}')"><span class="dot" style="background:${color}"></span>${label}</span>`).join('');
+}
+function renderPaneToggles(){
+  document.getElementById('paneToggles').innerHTML = '<span class="ind-group-label">Panes</span>' +
+    PANE_DEFS.map(([key,label,color])=>`
+      <span class="ind-chip ${STATE.chartToggles[key]?'on':''}" style="${STATE.chartToggles[key]?`color:${color}`:''}"
+        onclick="toggleChartOption('${key}')"><span class="dot" style="background:${color}"></span>${label}</span>`).join('');
+}
+function toggleChartOption(key){
+  STATE.chartToggles[key] = !STATE.chartToggles[key];
+  renderOverlayToggles(); renderPaneToggles();
+  if (STATE.chartData) renderMainChart(STATE.chartData);
+}
+
+function setChartRange(years){ STATE.chartRangeYears = years; loadChart(); }
+
+async function selectChartSymbol(symbol){
+  STATE.chartSymbol = symbol;
+  renderSymbolList();
+  await loadChart();
+}
+
+async function loadChart(){
+  if (!STATE.chartSymbol) return;
+  document.getElementById('tvSymbolBlock').innerHTML =
+    `<span class="tv-symbol-name">${esc(STATE.chartSymbol)}</span><span class="tv-symbol-sub">loading…</span>`;
+  const to = new Date().toISOString().slice(0,10);
+  const fromDate = new Date(); fromDate.setMonth(fromDate.getMonth() - Math.round(STATE.chartRangeYears*12));
+  const from = fromDate.toISOString().slice(0,10);
+  let data;
+  try{
+    data = await apiGet(`/chart/${encodeURIComponent(STATE.chartSymbol)}?from=${from}&to=${to}`);
+  }catch(e){ console.error(e); data = null; }
+  STATE.chartData = data;
+  if (!data || !data.bars || !data.bars.length){
+    document.getElementById('tvSymbolBlock').innerHTML = `<span class="tv-symbol-name">${esc(STATE.chartSymbol)}</span>`;
+    document.getElementById('mainChart').innerHTML =
+      `<div class="chart-empty"><span class="ms" aria-hidden="true">candlestick_chart</span>
+       No cached bars for this symbol/range. Run <b>dotnet run -- fetch --symbol ${esc(STATE.chartSymbol)} --from ${from} --to ${to}</b>.</div>`;
+    document.querySelectorAll('.pane-tag').forEach(el=>el.remove());
+    document.getElementById('chartLegend').innerHTML = '';
+    document.getElementById('chartInfoCards').innerHTML = '';
+    return;
+  }
+  renderMainChart(data);
+  renderChartInfoCards(data);
+}
+
+function renderMainChart(data){
+  const container = document.getElementById('mainChart');
+  const dates = data.bars.map(b => b.timestamp.slice(0,10));
+  const candleData = data.bars.map(b => [+b.open, +b.close, +b.low, +b.high]); // ECharts candlestick order is [open, close, low, high]
+  const ind = data.indicators;
+
+  const activePanes = PANE_DEFS.map(([k])=>k).filter(k => STATE.chartToggles[k]);
+  const PRICE_H = 360, PANE_H = 104, GAP = 10, TOP = 8, BOTTOM = 46;
+  let top = TOP;
+  const grids = [{ left:58, right:16, top, height:PRICE_H }];
+  const gridTops = [top];
+  top += PRICE_H + GAP;
+  for (let i = 0; i < activePanes.length; i++){ grids.push({ left:58, right:16, top, height:PANE_H }); gridTops.push(top); top += PANE_H + GAP; }
+  container.style.height = (top - GAP + BOTTOM) + 'px';
+
+  const xAxis = grids.map((g,i) => ({
+    type:'category', data:dates, gridIndex:i, boundaryGap:true, min:'dataMin', max:'dataMax',
+    axisLine:{ lineStyle:{ color:CHART_COLORS.axis } },
+    axisLabel:{ show:i===grids.length-1, color:CHART_COLORS.text, fontSize:11 },
+    axisTick:{ show:false }, splitLine:{ show:false },
+    axisPointer:{ label:{ show:i===grids.length-1, fontSize:11 } },
+  }));
+  const yAxis = grids.map((g,i) => ({
+    gridIndex:i, scale:true, position:'right', splitNumber: i===0?5:2,
+    axisLine:{ show:false }, axisLabel:{ color:CHART_COLORS.text, fontSize:11 },
+    splitLine:{ show:true, lineStyle:{ color:CHART_COLORS.grid } },
+  }));
+
+  const series = [{
+    type:'candlestick', name:data.symbol, xAxisIndex:0, yAxisIndex:0, data:candleData, z:2,
+    itemStyle:{ color:CHART_COLORS.up, color0:CHART_COLORS.down, borderColor:CHART_COLORS.up, borderColor0:CHART_COLORS.down },
+  }];
+  for (const [key,label,field,color] of OVERLAY_DEFS){
+    if (!STATE.chartToggles[key]) continue;
+    series.push({ type:'line', name:label, xAxisIndex:0, yAxisIndex:0, data:ind.map(i=>i[field]),
+      showSymbol:false, lineStyle:{ width: key==='supertrend'?1.2:1.6, color }, itemStyle:{ color }, z:3 });
+  }
+
+  activePanes.forEach((key, idx) => {
+    const gi = idx + 1;
+    if (key==='volume'){
+      series.push({ type:'bar', name:'Volume', xAxisIndex:gi, yAxisIndex:gi, barWidth:'60%',
+        data: data.bars.map(b => ({ value:+b.volume, itemStyle:{ color: (+b.close>=+b.open)?alpha(chartVar('up'),.55):alpha(chartVar('down'),.55) } })) });
+    } else if (key==='rsi'){
+      series.push({ type:'line', name:'RSI', xAxisIndex:gi, yAxisIndex:gi, data:ind.map(i=>i.rsi), showSymbol:false, lineStyle:{ color:CHART_COLORS.rsi, width:1.4 } });
+      yAxis[gi].min = 0; yAxis[gi].max = 100;
+    } else if (key==='adx'){
+      series.push({ type:'line', name:'ADX', xAxisIndex:gi, yAxisIndex:gi, data:ind.map(i=>i.adx), showSymbol:false, lineStyle:{ color:CHART_COLORS.adx, width:1.4 } });
+      yAxis[gi].min = 0;
+    } else if (key==='macd'){
+      series.push({ type:'line', name:'MACD', xAxisIndex:gi, yAxisIndex:gi, data:ind.map(i=>i.macd), showSymbol:false, lineStyle:{ color:CHART_COLORS.macd, width:1.4 } });
+      series.push({ type:'line', name:'Signal', xAxisIndex:gi, yAxisIndex:gi, data:ind.map(i=>i.macdSignal), showSymbol:false, lineStyle:{ color:CHART_COLORS.macdSignal, width:1.2 } });
+    } else if (key==='atr'){
+      series.push({ type:'line', name:'ATR%', xAxisIndex:gi, yAxisIndex:gi, data:ind.map(i=>i.atrPercent), showSymbol:false,
+        lineStyle:{ color:CHART_COLORS.atr, width:1.4 }, areaStyle:{ color:alpha(chartVar('atr'),.08) } });
+    }
+  });
+
+  const allIdx = grids.map((_,i)=>i);
+  const option = {
+    backgroundColor:'transparent', animation:false, textStyle:{ fontFamily:CHART_FONT },
+    grid: grids, xAxis, yAxis, series,
+    axisPointer:{ link:[{ xAxisIndex:'all' }] },
+    tooltip:{ trigger:'axis', showContent:false, axisPointer:{ type:'cross', crossStyle:{ color:chartVar('volume') }, label:{ backgroundColor:chartVar('tipBg'), color:chartVar('tipText'), fontSize:11 } } },
+    dataZoom:[
+      { type:'inside', xAxisIndex:allIdx, start:60, end:100 },
+      { type:'slider', xAxisIndex:allIdx, bottom:8, height:18, borderColor:chartVar('axis'), backgroundColor:'transparent',
+        fillerColor:alpha(chartVar('sma20'),.12), handleStyle:{ color:chartVar('axis') }, textStyle:{ color:chartVar('text'), fontSize:11 } },
+    ],
+  };
+
+  if (!mainChart) mainChart = echarts.init(container, null, { renderer:'canvas' });
+  mainChart.setOption(option, true);
+
+  renderPaneTags(activePanes, gridTops);
+  mainChart.off('updateAxisPointer');
+  mainChart.on('updateAxisPointer', e => updateChartLegend(data, e.dataIndex));
+  updateChartLegend(data, data.bars.length - 1);
+
+  if (!STATE.chartResizeObserver){
+    STATE.chartResizeObserver = new ResizeObserver(() => { if (mainChart) mainChart.resize(); });
+    STATE.chartResizeObserver.observe(document.getElementById('tvChartBody'));
+  }
+}
+
+function renderPaneTags(activePanes, gridTops){
+  const body = document.getElementById('tvChartBody');
+  body.querySelectorAll('.pane-tag').forEach(el=>el.remove());
+  STATE.paneTagEls = {};
+  activePanes.forEach((key, idx) => {
+    const el = document.createElement('div');
+    el.className = 'pane-tag';
+    el.style.top = (gridTops[idx+1] + 3) + 'px';
+    body.appendChild(el);
+    STATE.paneTagEls[key] = el;
+  });
+}
+
+function updateChartLegend(data, idx){
+  if (idx == null || idx < 0 || idx >= data.bars.length) idx = data.bars.length - 1;
+  const bar = data.bars[idx], ind = data.indicators[idx];
+  const prevBar = idx > 0 ? data.bars[idx-1] : null;
+  const change = prevBar ? bar.close - prevBar.close : 0;
+  const changePct = prevBar && prevBar.close ? (change/prevBar.close*100) : 0;
+  const up = change >= 0;
+  const chgColor = up ? 'var(--green)' : 'var(--red)';
+
+  document.getElementById('chartLegend').innerHTML = `
+    <span class="lg-item">O <b>${num(bar.open)}</b></span>
+    <span class="lg-item">H <b>${num(bar.high)}</b></span>
+    <span class="lg-item">L <b>${num(bar.low)}</b></span>
+    <span class="lg-item">C <b style="color:${chgColor}">${num(bar.close)}</b></span>
+    <span class="lg-item" style="color:${chgColor}">${up?'+':''}${num(change)} (${up?'+':''}${num(changePct)}%)</span>
+    <span class="lg-item">Vol <b>${int(bar.volume)}</b></span>
+    <span class="lg-item">${dateOnly(bar.timestamp)}</span>`;
+
+  const tags = STATE.paneTagEls || {};
+  if (tags.volume) tags.volume.innerHTML = `Volume · <b>${int(bar.volume)}</b>`;
+  if (tags.rsi) tags.rsi.innerHTML = `RSI (14) · <b>${ind.rsi!=null?num(ind.rsi,1):'—'}</b>`;
+  if (tags.adx) tags.adx.innerHTML = `ADX · <b>${ind.adx!=null?num(ind.adx,1):'—'}</b>`;
+  if (tags.macd) tags.macd.innerHTML = `MACD · <b style="color:${CHART_COLORS.macd}">${ind.macd!=null?num(ind.macd,2):'—'}</b> &nbsp;Signal <b style="color:${CHART_COLORS.macdSignal}">${ind.macdSignal!=null?num(ind.macdSignal,2):'—'}</b>`;
+  if (tags.atr) tags.atr.innerHTML = `ATR % · <b>${ind.atrPercent!=null?num(ind.atrPercent,2):'—'}</b>`;
+
+  const meta = STATE.instruments.find(i=>i.symbol===data.symbol);
+  document.getElementById('tvSymbolBlock').innerHTML = `
+    <span class="tv-symbol-name">${esc(data.symbol)}</span>
+    <span class="tv-symbol-sub">${esc(meta?.companyName||'')}</span>
+    <span class="tv-last-price">${num(bar.close)}</span>
+    <span class="tv-change ${up?'positive':'negative'}">${up?'+':''}${num(change)} (${up?'+':''}${num(changePct)}%)</span>`;
+}
+
+function renderChartInfoCards(data){
+  const vcp = data.vcp, surv = data.surveillance;
+  const survFlags = surv && surv.flags && surv.flags !== 'None' ? surv.flags : null;
+  document.getElementById('chartInfoCards').innerHTML = `
+    <h2><span class="ms" aria-hidden="true">info</span>Symbol Context</h2>
+    <div class="st-metric" style="margin-bottom:var(--sp-2)">
+      <div class="st-metric-label">Relative Strength (blended)</div>
+      <div class="st-metric-val" style="color:${colorFor((data.relativeStrengthScore||50)-50)}">${data.relativeStrengthScore!=null?num(data.relativeStrengthScore,1):'n/a'}</div>
+    </div>
+    <div class="st-metric" style="margin-bottom:var(--sp-2)">
+      <div class="st-metric-label">Market Cap Bucket</div>
+      <div class="st-metric-val">${bucketBadge(data.marketCapBucket)}</div>
+    </div>
+    <div class="st-metric" style="margin-bottom:var(--sp-2)">
+      <div class="st-metric-label">Surveillance</div>
+      <div class="st-metric-val">${survFlags ? `<span class="pill pill-red">${esc(survFlags)}</span>` : (surv ? `<span class="pill pill-green">Clear</span>` : `<span class="pill pill-gray">Unknown</span>`)}</div>
+      ${surv ? `<div class="st-metric-sub">${esc(surv.availability)} as of ${dateOnly(surv.asOfDate)}</div>` : ''}
+    </div>
+    ${vcp ? `
+    <h2 style="margin-top:var(--sp-4)"><span class="ms" aria-hidden="true">show_chart</span>VCP Pattern</h2>
+    <div class="kv"><span class="kv-key">Score</span><span class="kv-val">${num(vcp.vcpScore,1)}</span></div>
+    <div class="kv"><span class="kv-key">Contractions</span><span class="kv-val">${vcp.numberOfContractions}</span></div>
+    <div class="kv"><span class="kv-key">Contraction ratios</span><span class="kv-val t-sub">${(vcp.contractionRatios||[]).map(r=>num(r,1)+'%').join(' → ')}</span></div>
+    <div class="kv"><span class="kv-key">Pivot price</span><span class="kv-val">${rupees(vcp.pivotPrice)}</span></div>
+    <div class="kv"><span class="kv-key">Base length</span><span class="kv-val">${vcp.baseLengthDays} days</span></div>
+    <div class="kv"><span class="kv-key">Volume dry-up</span><span class="kv-val">${num(vcp.volumeDryUpScore,1)}</span></div>`
+    : `<h2 style="margin-top:var(--sp-4)"><span class="ms" aria-hidden="true">show_chart</span>VCP Pattern</h2><div class="empty" style="padding:var(--sp-4)"><span class="ms" aria-hidden="true">show_chart</span>No VCP pattern detected in range</div>`}`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Backtests panel — list + detail
+// ════════════════════════════════════════════════════════════════
+function renderBacktests(){
+  document.getElementById('panel-backtests').innerHTML = `<div id="btListView"></div><div id="btDetailView" style="display:none"></div>`;
+  renderBacktestList();
+}
+
+function renderBacktestList(){
+  const q = (STATE.filter.backtestRuns||'').toUpperCase();
+  const rows = sortRows(STATE.backtestRuns.filter(r=>(r.strategyVersion||'').toUpperCase().includes(q) || String(r.id).includes(q)),
+    STATE.sort.backtestRuns.key, STATE.sort.backtestRuns.dir);
+  document.getElementById('btListView').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">history</span>Backtest Runs</span>
+        <input class="tbl-search" placeholder="Filter by strategy version or id…" value="${esc(STATE.filter.backtestRuns)}"
+          oninput="STATE.filter.backtestRuns=this.value;renderBacktestList()"></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr>
+          <th onclick="setSort('backtestRuns','id')">Run</th>
+          <th onclick="setSort('backtestRuns','startedAt')">Started</th>
+          <th>Period</th><th>Status</th>
+          <th class="num" onclick="setSort('backtestRuns','tradeCount')">Trades</th>
+          <th class="num" onclick="setSort('backtestRuns','cagr')">CAGR</th>
+          <th class="num" onclick="setSort('backtestRuns','maxDrawdownPercent')">Max DD</th>
+          <th class="num" onclick="setSort('backtestRuns','sharpe')">Sharpe</th>
+          <th class="num" onclick="setSort('backtestRuns','finalCapital')">Final Capital</th>
+        </tr></thead>
+        <tbody>${rows.length ? rows.map(r=>`
+          <tr onclick="showBacktestDetail(${r.id})">
+            <td class="sym">#${r.id}${r.survivorshipBiased?'<div class="sym-sub">survivorship-biased</div>':''}</td>
+            <td>${dt(r.startedAt)}</td>
+            <td>${dateOnly(r.startDate)} → ${dateOnly(r.endDate)}</td>
+            <td><span class="pill ${r.status==='Completed'?'pill-green':r.status==='Failed'?'pill-red':'pill-amber'}">${esc(r.status)}</span></td>
+            <td class="num">${r.tradeCount ?? '—'}</td>
+            <td class="num" style="color:${colorFor(r.cagr)}">${r.cagr!=null?pct(r.cagr):'—'}</td>
+            <td class="num" style="color:var(--red)">${r.maxDrawdownPercent!=null?'-'+num(Math.abs(r.maxDrawdownPercent),1)+'%':'—'}</td>
+            <td class="num">${r.sharpe!=null?num(r.sharpe):'—'}</td>
+            <td class="num">${r.finalCapital!=null?rupees(r.finalCapital):'—'}</td>
+          </tr>`).join('')
+          : `<tr><td colspan="9"><div class="empty"><span class="ms" aria-hidden="true">history</span>No backtest runs yet. Run <b>dotnet run -- backtest --from 2022-01-01 --to 2026-08-01</b>.</div></td></tr>`}
+        </tbody></table></div>
+    </div>`;
+}
+
+async function showBacktestDetail(id){
+  document.getElementById('btListView').style.display = 'none';
+  document.getElementById('btDetailView').style.display = 'block';
+  document.getElementById('btDetailView').innerHTML = `<div class="loading-row"><span class="ms spin" aria-hidden="true">progress_activity</span>Loading run #${id}…</div>`;
+  const detail = await apiGet(`/backtests/${id}/detail`);
+  if (!detail){ document.getElementById('btDetailView').innerHTML = `<div class="empty">Could not load run #${id}</div>`; return; }
+  STATE.currentBacktestDetail = detail;
+  renderBacktestDetail();
+}
+function backToBacktestList(){
+  document.getElementById('btListView').style.display = 'block';
+  document.getElementById('btDetailView').style.display = 'none';
+}
+
+function renderBacktestDetail(){
+  const d = STATE.currentBacktestDetail, r = d.run;
+  const snapshots = [...d.snapshots].sort((a,b)=> a.asOfDate < b.asOfDate ? -1 : 1);
+  const labels = snapshots.map(s=>s.asOfDate);
+  const navSeries = snapshots.map(s=>s.nav);
+  const ddSeries = snapshots.map(s=>-s.drawdownPercent);
+
+  const cards = [
+    ['Final Capital', r.finalCapital!=null?rupees(r.finalCapital):'—', ''],
+    ['CAGR', r.cagr!=null?pct(r.cagr):'—', r.cagr>=0?'green':'red'],
+    ['Max Drawdown', r.maxDrawdownPercent!=null?'-'+num(Math.abs(r.maxDrawdownPercent),1)+'%':'—', 'red'],
+    ['Sharpe', r.sharpe!=null?num(r.sharpe):'—', ''],
+    ['Sortino', r.sortino!=null?num(r.sortino):'—', ''],
+    ['Win Rate', r.winRatePercent!=null?pctPlain(r.winRatePercent,1):'—', ''],
+    ['Profit Factor', r.profitFactor!=null?num(r.profitFactor):'—', ''],
+    ['Expectancy', r.expectancyR!=null?num(r.expectancyR)+' R':'—', ''],
+    ['Trade Count', r.tradeCount ?? '—', ''],
+    ['Data Version', '', ''],
+  ];
+
+  document.getElementById('btDetailView').innerHTML = `
+    <span class="back-link" onclick="backToBacktestList()"><span class="ms" aria-hidden="true">arrow_back</span>Back to all runs</span>
+    <div class="panel-box">
+      <h2>Run #${r.id} — ${esc(r.strategyVersion)}</h2>
+      <div class="t-sub" style="margin-top:var(--sp-1)">${dateOnly(r.startDate)} → ${dateOnly(r.endDate)} ·
+        config hash <code>${esc(r.configurationHash)}</code> · ${r.survivorshipBiased?'<span style="color:var(--amber)">survivorship-biased universe</span>':'point-in-time universe'}</div>
+    </div>
+    <div class="cards">${cards.filter(([l])=>l!=='Data Version').map(([label,val,cls])=>
+      `<div class="card ${cls}"><div class="card-label">${esc(label)}</div><div class="card-value">${val}</div></div>`).join('')}</div>
+    <div class="grid2">
+      <div class="panel-box"><h2><span class="ms" aria-hidden="true">show_chart</span>Equity Curve</h2><div class="chart-wrap" id="btEqChart"></div></div>
+      <div class="panel-box"><h2><span class="ms" aria-hidden="true">area_chart</span>Drawdown</h2><div class="chart-wrap" id="btDdChart"></div></div>
+    </div>
+    <div class="panel-box">
+      <h2><span class="ms" aria-hidden="true">calendar_month</span>Yearly Returns</h2>
+      <div class="tbl-scroll"><table><thead><tr><th>Year</th><th class="num">Return</th><th class="num">Trades</th></tr></thead>
+      <tbody>${(d.yearlyReturns||[]).map(y=>`<tr><td>${esc(y.periodLabel)}</td>
+        <td class="num" style="color:${colorFor(y.returnPct)}">${pct(y.returnPct)}</td><td class="num">${y.trades}</td></tr>`).join('')
+        || `<tr><td colspan="3"><div class="empty">No snapshot history</div></td></tr>`}</tbody></table></div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span class="tbl-title"><span class="ms" aria-hidden="true">book</span>Trade Journal</span>
+        <input class="tbl-search" placeholder="Filter symbol…" value="${esc(STATE.filter.trades)}"
+          oninput="STATE.filter.trades=this.value;renderBacktestTrades()"></div>
+      <div class="tbl-scroll" id="btTradesTable"></div>
+    </div>`;
+
+  const simpleAxis = { axisLine:{ lineStyle:{ color:chartVar('axis') } }, axisLabel:{ color:chartVar('text'), fontSize:11 }, axisTick:{ show:false }, splitLine:{ show:false } };
+  if (BT_CHARTS.eq) BT_CHARTS.eq.dispose();
+  BT_CHARTS.eq = echarts.init(document.getElementById('btEqChart'));
+  BT_CHARTS.eq.setOption({
+    backgroundColor:'transparent', animation:false, textStyle:{ fontFamily:CHART_FONT },
+    grid:{ left:52, right:16, top:12, bottom:24 },
+    xAxis:{ type:'category', data:labels, ...simpleAxis, axisLabel:{ ...simpleAxis.axisLabel, showMaxLabel:true }, boundaryGap:false },
+    yAxis:{ type:'value', axisLine:{ show:false }, axisLabel:{ color:chartVar('text'), fontSize:11 }, splitLine:{ lineStyle:{ color:chartVar('grid') } } },
+    tooltip:{ trigger:'axis', backgroundColor:chartVar('tipBg'), borderColor:chartVar('axis'), textStyle:{ color:chartVar('tipText'), fontSize:11 },
+      formatter:(p)=>`${p[0].axisValue}<br/>NAV ${rupees(p[0].value)}` },
+    series:[{ type:'line', data:navSeries, showSymbol:false, lineStyle:{ color:chartVar('sma20'), width:1.8 },
+      areaStyle:{ color:{ type:'linear', x:0,y:0,x2:0,y2:1, colorStops:[{offset:0,color:alpha(chartVar('sma20'),.25)},{offset:1,color:alpha(chartVar('sma20'),0)}] } } }],
+  });
+  if (BT_CHARTS.dd) BT_CHARTS.dd.dispose();
+  BT_CHARTS.dd = echarts.init(document.getElementById('btDdChart'));
+  BT_CHARTS.dd.setOption({
+    backgroundColor:'transparent', animation:false, textStyle:{ fontFamily:CHART_FONT },
+    grid:{ left:52, right:16, top:12, bottom:24 },
+    xAxis:{ type:'category', data:labels, ...simpleAxis, boundaryGap:false },
+    yAxis:{ type:'value', max:0, axisLine:{ show:false }, axisLabel:{ color:chartVar('text'), fontSize:11 }, splitLine:{ lineStyle:{ color:chartVar('grid') } } },
+    tooltip:{ trigger:'axis', backgroundColor:chartVar('tipBg'), borderColor:chartVar('axis'), textStyle:{ color:chartVar('tipText'), fontSize:11 },
+      formatter:(p)=>`${p[0].axisValue}<br/>Drawdown ${num(p[0].value,2)}%` },
+    series:[{ type:'line', data:ddSeries, showSymbol:false, lineStyle:{ color:chartVar('down'), width:1.4 },
+      areaStyle:{ color:alpha(chartVar('down'),.15) } }],
+  });
+  [BT_CHARTS.eq, BT_CHARTS.dd].forEach(c => new ResizeObserver(()=>c.resize()).observe(c.getDom()));
+
+  renderBacktestTrades();
+}
+
+function renderBacktestTrades(){
+  const d = STATE.currentBacktestDetail;
+  const q = (STATE.filter.trades||'').toUpperCase();
+  const trades = (d.trades||[]).filter(t=>t.symbol.toUpperCase().includes(q)).sort((a,b)=> a.exitAt < b.exitAt ? 1 : -1);
+  document.getElementById('btTradesTable').innerHTML = `
+    <table><thead><tr><th>Symbol</th><th>Entry</th><th>Exit</th><th class="num">Entry Px</th><th class="num">Exit Px</th>
+      <th class="num">Net P/L</th><th class="num">R-Multiple</th><th>Exit Reason</th></tr></thead>
+    <tbody>${trades.length ? trades.map(t=>`
+      <tr onclick="showTradeModal(${t.id})">
+        <td class="sym">${esc(t.symbol)}</td><td>${dateOnly(t.entryAt)}</td><td>${dateOnly(t.exitAt)}</td>
+        <td class="num">${rupees(t.entryPrice)}</td><td class="num">${rupees(t.exitPrice)}</td>
+        <td class="num" style="color:${colorFor(t.realizedPnl)}">${rupees(t.realizedPnl)}</td>
+        <td class="num" style="color:${colorFor(t.rMultiple)}">${num(t.rMultiple)}R</td>
+        <td>${esc(titleCase(t.exitReason))}</td>
+      </tr>`).join('') : `<tr><td colspan="8"><div class="empty">No trades in this run</div></td></tr>`}
+    </tbody></table>`;
+}
+
+function showTradeModal(id){
+  const t = (STATE.currentBacktestDetail.trades||[]).find(x=>x.id===id); if(!t) return;
+  openModal(t.symbol + ' — Trade', `
+    <div class="kv"><span class="kv-key">Entry</span><span class="kv-val">${rupees(t.entryPrice)} on ${dateOnly(t.entryAt)}</span></div>
+    <div class="kv"><span class="kv-key">Exit</span><span class="kv-val">${rupees(t.exitPrice)} on ${dateOnly(t.exitAt)}</span></div>
+    <div class="kv"><span class="kv-key">Initial stop</span><span class="kv-val">${rupees(t.initialStop)}</span></div>
+    <div class="kv"><span class="kv-key">Realized P/L</span><span class="kv-val" style="color:${colorFor(t.realizedPnl)}">${rupees(t.realizedPnl)}</span></div>
+    <div class="kv"><span class="kv-key">R-Multiple</span><span class="kv-val" style="color:${colorFor(t.rMultiple)}">${num(t.rMultiple)}R</span></div>
+    <div class="kv"><span class="kv-key">MFE / MAE</span><span class="kv-val">${num(t.maximumFavorableExcursion)}% / ${num(t.maximumAdverseExcursion)}%</span></div>
+    <div class="kv"><span class="kv-key">Exit reason</span><span class="kv-val">${esc(titleCase(t.exitReason))}</span></div>
+    <div class="kv"><span class="kv-key">Regime score at entry</span><span class="kv-val">${t.regimeScoreAtEntry}</span></div>
+    <div class="kv"><span class="kv-key">Stock score at entry</span><span class="kv-val">${num(t.stockScoreAtEntry,1)}</span></div>
+    <div class="kv"><span class="kv-key">Risk at entry</span><span class="kv-val">${pctPlain(t.riskAtEntryPercent)}</span></div>`);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Risk & Performance panel
+// ════════════════════════════════════════════════════════════════
+function renderRisk(){
+  const r = STATE.risk, perf = STATE.performance;
+  document.getElementById('panel-risk').innerHTML = `
+    <div class="grid2">
+      <div class="panel-box">
+        <h2><span class="ms" aria-hidden="true">shield</span>Risk Status</h2>
+        ${r ? `
+        <div class="kv"><span class="kv-key">Current drawdown</span><span class="kv-val" style="color:${(r.currentDrawdownPercent||0)>10?'var(--red)':'inherit'}">${pctPlain(r.currentDrawdownPercent,1)}</span></div>
+        <div class="kv"><span class="kv-key">Max drawdown (all-time)</span><span class="kv-val">${pctPlain(r.maxDrawdownPercent,1)}</span></div>
+        <div class="kv"><span class="kv-key">Current tier</span><span class="kv-val"><span class="pill ${r.tradingShutDown?'pill-red':'pill-blue'}">${esc(r.currentTierName)}</span></span></div>
+        <div class="kv"><span class="kv-key">Trading shut down</span><span class="kv-val">${r.tradingShutDown?`<span class="pill pill-red">YES</span>`:`<span class="pill pill-green">No</span>`}</span></div>
+        <div class="kv"><span class="kv-key">Portfolio heat</span><span class="kv-val">${pctPlain(r.portfolioHeatPercent,1)} / ${pctPlain(r.portfolioHeatMaxPercent,1)} max</span></div>
+        <div class="kv"><span class="kv-key">Daily loss limit</span><span class="kv-val">${r.dailyLossLimitBreached?`<span class="pill pill-red">Breached</span>`:`<span class="pill pill-green">OK</span>`}</span></div>
+        <div class="kv"><span class="kv-key">Weekly loss limit</span><span class="kv-val">${r.weeklyLossLimitBreached?`<span class="pill pill-red">Breached</span>`:`<span class="pill pill-green">OK</span>`}</span></div>
+        <div class="kv"><span class="kv-key">Monthly loss limit</span><span class="kv-val">${r.monthlyLossLimitBreached?`<span class="pill pill-red">Breached</span>`:`<span class="pill pill-green">OK</span>`}</span></div>
+        <div class="kv"><span class="kv-key">Kill switch</span><span class="kv-val">${r.killSwitchActive?`<span class="pill pill-red">Active — ${esc(r.killSwitchReason||r.killSwitchSource||'unknown')}</span>`:`<span class="pill pill-green">Inactive</span>`}</span></div>
+        ` : `<div class="empty"><span class="ms" aria-hidden="true">gpp_bad</span>No risk data yet — run <b>dotnet run -- paper</b> or <b>-- backtest</b></div>`}
+      </div>
+      <div class="panel-box">
+        <h2><span class="ms" aria-hidden="true">payments</span>Live/Paper Performance</h2>
+        ${perf ? `
+        <div class="kv"><span class="kv-key">Current capital</span><span class="kv-val">${rupees(perf.currentCapital)}</span></div>
+        <div class="kv"><span class="kv-key">CAGR to date</span><span class="kv-val" style="color:${colorFor(perf.cagrToDate)}">${perf.cagrToDate!=null?pct(perf.cagrToDate):'n/a — not enough history'}</span></div>
+        <div class="kv"><span class="kv-key">Max drawdown</span><span class="kv-val">${perf.maxDrawdownPercent!=null?pctPlain(perf.maxDrawdownPercent,1):'n/a'}</span></div>
+        <div class="kv"><span class="kv-key">Sharpe / Sortino</span><span class="kv-val">${perf.sharpe!=null?num(perf.sharpe):'n/a'} / ${perf.sortino!=null?num(perf.sortino):'n/a'}</span></div>
+        <div class="kv"><span class="kv-key">Win rate</span><span class="kv-val">${perf.winRatePercent!=null?pctPlain(perf.winRatePercent,1):'n/a'}</span></div>
+        <div class="kv"><span class="kv-key">Profit factor</span><span class="kv-val">${perf.profitFactor!=null?(isFinite(perf.profitFactor)?num(perf.profitFactor):'∞'):'n/a'}</span></div>
+        <div class="kv"><span class="kv-key">Expectancy</span><span class="kv-val">${perf.expectancyR!=null?num(perf.expectancyR)+' R':'n/a'}</span></div>
+        <div class="kv"><span class="kv-key">Trade count</span><span class="kv-val">${perf.tradeCount}</span></div>
+        ${perf.tradeCount===0?'<div class="card-sub" style="margin-top:var(--sp-3)">No live/paper trades closed yet — these figures will populate once `paper`/`live` cycles start closing positions.</div>':''}
+        ` : `<div class="empty"><span class="ms" aria-hidden="true">payments</span>No performance data yet</div>`}
+      </div>
+    </div>
+    <div class="panel-box">
+      <h2><span class="ms" aria-hidden="true">monitoring</span>Today's Activity</h2>
+      ${STATE.metrics ? `
+      <div class="grid3">
+        <div class="st-metric"><div class="st-metric-label">Signals Generated</div><div class="st-metric-val">${STATE.metrics.signalsGeneratedToday}</div></div>
+        <div class="st-metric"><div class="st-metric-label">Orders Submitted</div><div class="st-metric-val">${STATE.metrics.ordersSubmittedToday}</div></div>
+        <div class="st-metric"><div class="st-metric-label">Orders Filled</div><div class="st-metric-val" style="color:var(--green)">${STATE.metrics.ordersFilledToday}</div></div>
+      </div>
+      <div class="st-metric" style="margin-top:var(--sp-3)"><div class="st-metric-label">Orders Rejected</div><div class="st-metric-val" style="color:${STATE.metrics.ordersRejectedToday>0?'var(--red)':'inherit'}">${STATE.metrics.ordersRejectedToday}</div></div>
+      ` : `<div class="empty">No metrics yet</div>`}
+    </div>`;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+boot();
+
+document.getElementById('menuBtn').addEventListener('click',()=>document.body.classList.toggle('drawer-open'));
+document.getElementById('scrim').addEventListener('click',()=>document.body.classList.remove('drawer-open'));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); document.body.classList.remove('drawer-open'); } });
+</script>
+</body>
+</html>
