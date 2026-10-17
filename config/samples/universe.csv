@@ -1,0 +1,3 @@
+Symbol,NseSymbol,YahooSymbol,Isin,CompanyName,Sector,Industry,MarketCap,AverageDailyTurnover,LotSize,Exchange,Active
+EXAMPLEA,EXAMPLEA,EXAMPLEA.NS,,Example Industries Ltd,Capital Goods,Industrial Machinery,15000,450000000,1,NSE,true
+EXAMPLEB,,,,"Example Chemicals, Ltd",Chemicals,,4200,120000000,,,true
